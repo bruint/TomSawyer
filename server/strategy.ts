@@ -59,19 +59,36 @@ export function buildStrategy(
     caveat:
       "Planning estimates, not medical advice. Follow your child’s cues and clinician’s advice; don’t delay needed feeds.",
   };
-  if (ageMonths < 2)
-    return {
-      ...base,
-      status: "gentle",
-      headline: "Follow sleep cues",
-      summary: "Timed estimates start at 2 months corrected age.",
-    };
   if (active?.details.sleepType === "night")
     return {
       ...base,
       status: "sleeping",
       headline: "Sleeping",
       summary: "End night sleep when they wake.",
+    };
+  if (context.nightState?.phase === "awake")
+    return {
+      ...base,
+      status: "night",
+      headline: "Night waking",
+      summary:
+        "Tap Back asleep when they settle, or Up for the day to start the morning.",
+      awakeSince: context.nightState.activity.endedAt,
+      reasons: [
+        {
+          code: "night-wake",
+          title: "Still overnight",
+          detail:
+            "Night waking does not start a daytime wake window or sleep reminders.",
+        },
+      ],
+    };
+  if (ageMonths < 2)
+    return {
+      ...base,
+      status: "gentle",
+      headline: "Follow sleep cues",
+      summary: "Timed estimates start at 2 months corrected age.",
     };
   if (now < context.usualWake && !context.observed && !active)
     return {

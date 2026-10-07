@@ -148,8 +148,13 @@ export default function App() {
           stop: "Session saved",
           pause: "Timer paused",
           resume: "Timer resumed",
+          "night-wake": "Night wake recorded",
+          "back-asleep": "Back asleep",
+          "up-for-day": "Up for the day",
         }[action],
       );
+      if (["night-wake", "back-asleep", "up-for-day"].includes(action))
+        setCompare(null);
     } catch (error) {
       toast.error((error as Error).message);
     }

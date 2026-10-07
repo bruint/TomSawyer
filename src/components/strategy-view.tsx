@@ -29,14 +29,17 @@ export function StrategyView({
         child={child}
         title="Your strategy"
         action={
-          <Button
-            variant="outline"
-            disabled={quickBusy || strategy.status === "sleeping"}
-            onClick={() => onLog("skipped_nap")}
-          >
-            <CloudMoon />
-            Missed nap
-          </Button>
+          strategy.status !== "night" &&
+          strategy.status !== "sleeping" && (
+            <Button
+              variant="outline"
+              disabled={quickBusy}
+              onClick={() => onLog("skipped_nap")}
+            >
+              <CloudMoon />
+              Missed nap
+            </Button>
+          )
         }
       />
       <div className="strategy-content">

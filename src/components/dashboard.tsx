@@ -5,6 +5,7 @@ import type {
   ActivityKind,
   Child,
   Strategy,
+  TimerAction,
 } from "../../shared/types";
 import { duration, time } from "../lib/format";
 import type { Page } from "../lib/navigation";
@@ -39,7 +40,7 @@ export function Dashboard({
   online: boolean;
   onEdit: (a: Activity) => void;
   onNavigate: (page: Page) => void;
-  onTimer: (a: Activity, action: "pause" | "resume" | "stop") => void;
+  onTimer: (a: Activity, action: TimerAction) => void;
 }) {
   const today = DateTime.now().setZone(child.timezone).startOf("day");
   const todays = events.filter((a) => DateTime.fromISO(a.startedAt) >= today);
@@ -66,7 +67,11 @@ export function Dashboard({
       {!sleeping && (
         <section className="sleep-overview">
           <div>
-            <span className="sleep-label">{next?.title || "Next sleep"}</span>
+            <span className="sleep-label">
+              {strategy?.status === "night"
+                ? "Overnight"
+                : next?.title || "Next sleep"}
+            </span>
             <h2>
               {strategy?.nextSleep
                 ? time(strategy.nextSleep, child.timezone)

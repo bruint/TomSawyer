@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { elapsedMs, type Activity, type Child } from "../../shared/types.js";
+import { nightSleepState } from "../../shared/night-sleep.js";
 import { atLocal, dayBoundary, minutesBetween } from "./time.js";
 
 // The API and notification worker must use the same history for the same plan.
@@ -11,7 +12,6 @@ export function sleepContext(
   nowInput: Date,
 ) {
   const now = DateTime.fromJSDate(nowInput).setZone(child.timezone);
-  const day = dayBoundary(child, now);
   const date = (value: string) =>
     DateTime.fromISO(value).setZone(child.timezone);
   const ageDate =
@@ -22,6 +22,18 @@ export function sleepContext(
   const recorded = activities
     .filter((activity) => date(activity.startedAt) <= now)
     .sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
+  const boundary = dayBoundary(child, now);
+  // An explicit early morning starts its own day, even before the usual sleep
+  // day boundary. Keep that wake visible after the clock passes the boundary.
+  const earlyMorning = recorded.find(
+    (activity) =>
+      activity.kind === "wake" &&
+      activity.details.dayStarted === true &&
+      date(activity.startedAt).toISODate() === now.toISODate() &&
+      date(activity.startedAt) < atLocal(now, child.settings.dayStart),
+  );
+  const day = earlyMorning ? date(earlyMorning.startedAt) : boundary;
+  const nightState = nightSleepState(recorded, nowInput);
   const sleeps = recorded.filter(
     (activity) =>
       activity.kind === "sleep" &&
@@ -37,11 +49,12 @@ export function sleepContext(
   const active = recorded.find(
     (activity) => activity.kind === "sleep" && activity.state !== "complete",
   );
-  const wake = today.find((activity) => activity.kind === "wake");
+  const wake = today.filter((activity) => activity.kind === "wake").at(-1);
   const night = sleeps
     .filter(
       (activity) =>
         activity.details.sleepType === "night" &&
+        activity.details.nightWake !== true &&
         date(activity.endedAt!) >= day,
     )
     .at(-1);
@@ -91,6 +104,7 @@ export function sleepContext(
     observed: !!(wake || night || lastNap),
     naps,
     active,
+    nightState,
     activeMinutes,
     lastNapMinutes: lastNap ? duration(lastNap) : null,
     totalNapMinutes,
@@ -115,22 +129,30 @@ function recentNapCounts(activities: Activity[], today: DateTime) {
       const time = DateTime.fromISO(value);
       return time >= start && time < end;
     };
-    const morning = activities.some(
-      (activity) =>
-        (activity.kind === "wake" && inDay(activity.startedAt)) ||
-        (activity.kind === "sleep" &&
-          activity.details.sleepType === "night" &&
-          activity.state === "complete" &&
-          activity.endedAt &&
-          inDay(activity.endedAt)),
-    );
+    const mornings = activities.flatMap((activity) => {
+      if (activity.kind === "wake" && inDay(activity.startedAt))
+        return [Date.parse(activity.startedAt)];
+      if (
+        activity.kind === "sleep" &&
+        activity.details.sleepType === "night" &&
+        activity.details.nightWake !== true &&
+        activity.state === "complete" &&
+        activity.endedAt &&
+        inDay(activity.endedAt)
+      )
+        return [Date.parse(activity.endedAt)];
+      return [];
+    });
+    if (!mornings.length) continue;
+    const morning = Math.min(...mornings);
     const night = activities.find(
       (activity) =>
         activity.kind === "sleep" &&
         activity.details.sleepType === "night" &&
+        Date.parse(activity.startedAt) >= morning &&
         inDay(activity.startedAt),
     );
-    if (!morning || !night) continue;
+    if (!night) continue;
     const naps = activities.filter(
       (activity) =>
         activity.kind === "sleep" &&

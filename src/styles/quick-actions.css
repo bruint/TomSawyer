@@ -21,6 +21,40 @@
   padding: 8px 12px max(8px, env(safe-area-inset-bottom));
   gap: 6px;
 }
+.night-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(100%, 800px);
+  margin: auto;
+  padding: 6px 12px 0;
+  font-size: 13px;
+}
+.night-actions > span {
+  color: var(--muted);
+}
+.night-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 650;
+  touch-action: manipulation;
+}
+.night-actions button:disabled {
+  opacity: 0.45;
+}
+.has-quick-actions:has(.night-actions) .main-content {
+  padding-bottom: 180px;
+}
 .quick-action {
   display: flex;
   flex-direction: column;
@@ -176,6 +210,9 @@
   }
   .has-quick-actions .main-content {
     padding-bottom: calc(182px + env(safe-area-inset-bottom));
+  }
+  .has-quick-actions:has(.night-actions) .main-content {
+    padding-bottom: calc(237px + env(safe-area-inset-bottom));
   }
   .quick-action-sheet {
     top: auto;

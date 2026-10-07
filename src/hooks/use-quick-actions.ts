@@ -17,6 +17,7 @@ import {
   sleepTypeNow,
   type BottlePreset,
 } from "../lib/quick-actions";
+import { nightSleepState } from "../../shared/night-sleep";
 
 interface QuickActionOptions {
   child?: Child;
@@ -51,7 +52,12 @@ export function useQuickActions({
   );
   const bottle = latestBottle(events);
   const side = nextNursingSide(events);
-  const sleepType = child ? sleepTypeNow(child, new Date(), strategy) : "nap";
+  const night = nightSleepState(events);
+  const sleepType = night
+    ? "night"
+    : child
+      ? sleepTypeNow(child, new Date(), strategy)
+      : "nap";
 
   async function perform(operation: () => Promise<void>) {
     if (inFlight.current || !child) return;
@@ -91,10 +97,24 @@ export function useQuickActions({
       toast.error("Reconnect to stop a timer.");
       return;
     }
-    return perform(() => onTimer(activity, "stop"));
+    return perform(() =>
+      onTimer(
+        activity,
+        activity.kind === "sleep" && activity.details.sleepType === "night"
+          ? "night-wake"
+          : "stop",
+      ),
+    );
   }
 
   function startSleep(type = sleepType) {
+    if (night?.phase === "awake" && type === "night") {
+      if (!online) {
+        toast.error("Reconnect to start a timer.");
+        return;
+      }
+      return perform(() => onTimer(night.activity, "back-asleep"));
+    }
     return sleep
       ? finish(sleep)
       : record(
@@ -103,6 +123,19 @@ export function useQuickActions({
           type === "nap" ? "Nap timer started" : "Night sleep started",
           true,
         );
+  }
+
+  function upForDay() {
+    if (night) {
+      if (!online) {
+        toast.error("Reconnect to finish night sleep.");
+        return;
+      }
+      return perform(() => onTimer(night.activity, "up-for-day"));
+    }
+    return sleep
+      ? finish(sleep)
+      : record("wake", { dayStarted: true }, "Morning wake saved");
   }
 
   function nurse(nextSide = side) {
@@ -149,7 +182,7 @@ export function useQuickActions({
       case "diaper":
         return diaper("Wet");
       case "wake":
-        return sleep ? finish(sleep) : record("wake", {}, "Morning wake saved");
+        return upForDay();
       case "skipped_nap":
         if (sleep) {
           toast.info("Finish the current sleep before recording a missed nap.");
@@ -173,6 +206,8 @@ export function useQuickActions({
   function label(kind: ActivityKind) {
     switch (kind) {
       case "sleep":
+        if (night)
+          return night.phase === "awake" ? "Back asleep" : "Night wake";
         return sleep
           ? "Wake up"
           : sleepType === "nap"
@@ -198,6 +233,7 @@ export function useQuickActions({
     setSheet,
     busy,
     sleep,
+    night,
     nursing,
     pumping,
     bottle,
@@ -207,6 +243,7 @@ export function useQuickActions({
     activate,
     label,
     startSleep,
+    upForDay,
     nurse,
     logBottle,
     diaper,

@@ -5,6 +5,7 @@ import {
   kindLabels,
   type Activity,
   type Child,
+  type TimerAction,
 } from "../../shared/types";
 import { time } from "../lib/format";
 import { ActivityIcon } from "./activity-icon";
@@ -20,7 +21,7 @@ export function RunningTimers({
   disabled?: boolean;
   events: Activity[];
   child: Child;
-  onTimer: (a: Activity, action: "pause" | "resume" | "stop") => void;
+  onTimer: (a: Activity, action: TimerAction) => void;
   onEdit: (a: Activity) => void;
 }) {
   const [, tick] = useState(0);
@@ -39,7 +40,9 @@ export function RunningTimers({
             </span>
             <div>
               <span className="timer-label">
-                {kindLabels[a.kind]}
+                {a.kind === "sleep" && a.details.sleepType === "night"
+                  ? "Night sleep"
+                  : kindLabels[a.kind]}
                 {a.state === "paused" ? " · Paused" : ""}
               </span>
               <strong className="timer-digits">
@@ -72,10 +75,12 @@ export function RunningTimers({
                   {a.state === "paused" ? <Play /> : <Pause />}
                 </Button>
               )}
-              <Button disabled={disabled} onClick={() => onTimer(a, "stop")}>
-                <Square />
-                {a.kind === "sleep" ? "Woke up" : "Finish"}
-              </Button>
+              {!(a.kind === "sleep" && a.details.sleepType === "night") && (
+                <Button disabled={disabled} onClick={() => onTimer(a, "stop")}>
+                  <Square />
+                  {a.kind === "sleep" ? "Woke up" : "Finish"}
+                </Button>
+              )}
             </div>
           </div>
         ))}

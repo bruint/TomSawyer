@@ -82,7 +82,19 @@ export type ActivityInput = Pick<
   state: "active" | "complete";
   version?: number;
 };
-export type TimerAction = "pause" | "resume" | "stop";
+export const nightActions = [
+  "night-wake",
+  "back-asleep",
+  "up-for-day",
+] as const;
+export type NightAction = (typeof nightActions)[number];
+export const timerActions = [
+  "pause",
+  "resume",
+  "stop",
+  ...nightActions,
+] as const;
+export type TimerAction = (typeof timerActions)[number];
 
 export interface ServerStatus {
   needsSetup: boolean;

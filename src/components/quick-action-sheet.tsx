@@ -107,12 +107,18 @@ export function QuickActionSheet({
               <button
                 type="button"
                 disabled={actions.busy || !actions.online}
-                onClick={() => void actions.startSleep("nap")}
+                onClick={() =>
+                  void actions.startSleep(actions.night ? "night" : "nap")
+                }
               >
                 <Moon />
-                {actions.sleep ? "Wake up" : "Start nap"}
+                {actions.night
+                  ? actions.label("sleep")
+                  : actions.sleep
+                    ? "Wake up"
+                    : "Start nap"}
               </button>
-              {!actions.sleep && (
+              {!actions.sleep && !actions.night && (
                 <button
                   type="button"
                   disabled={actions.busy || !actions.online}
@@ -166,15 +172,22 @@ export function QuickActionSheet({
               </button>
               <button
                 type="button"
-                disabled={actions.busy || (!!actions.sleep && !actions.online)}
+                disabled={
+                  actions.busy ||
+                  ((!!actions.sleep || !!actions.night) && !actions.online)
+                }
                 onClick={() => void actions.activate("wake")}
               >
                 <Sunrise />
-                {actions.sleep ? "Wake up" : "Morning wake"}
+                {actions.night
+                  ? "Up for the day"
+                  : actions.sleep
+                    ? "Wake up"
+                    : "Morning wake"}
               </button>
               <button
                 type="button"
-                disabled={actions.busy || !!actions.sleep}
+                disabled={actions.busy || !!actions.sleep || !!actions.night}
                 onClick={() => void actions.activate("skipped_nap")}
               >
                 <ActivityIcon kind="skipped_nap" />

@@ -159,3 +159,24 @@ test("sleep shortcut follows flexible bedtime and late naps near the live plan's
   assert.equal(sleepTypeNow(lateChild, lateTime), "night");
   assert.equal(sleepTypeNow(lateChild, lateTime, late), "nap");
 });
+
+test("an explicit early morning makes the sleep shortcut a nap before the usual wake time", () => {
+  const morning = {
+    ...event("wake", { dayStarted: true }),
+    startedAt: "2026-10-07T03:30:00+08:00",
+  };
+  const current = new Date("2026-10-07T03:35:00+08:00");
+  const profile = {
+    ...child,
+    settings: {
+      ...child.settings,
+      napCount: 3,
+      wakeWindows: [120, 135, 150, 165],
+    },
+  };
+  const plan = buildStrategy(profile, [morning], current);
+  assert.equal(plan.status, "ready");
+  assert.equal(Date.parse(plan.nextSleep!) - current.getTime(), 115 * 60000);
+  assert.equal(sleepTypeNow(profile, current), "night");
+  assert.equal(sleepTypeNow(profile, current, plan), "nap");
+});

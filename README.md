@@ -90,6 +90,8 @@ The app does not need to stay open. Use **Send a test** in Settings to check del
 
 While a nap is running, the strategy shows **If they wake now**. Sleep so far, the next wake window, remaining naps, and bedtime are recalculated every 15 seconds while the app is visible and connected. The actual timer stays ongoing until a caregiver ends it. Journal opens on today in the child’s timezone; use the day arrows, date picker, or All recent entries to reach older logs.
 
+During night sleep, tap **Night wake** when your child wakes and **Back asleep** when they settle. Both are single taps in the quick-action toolbar. Feeds and diaper shortcuts stay available. Sleep is saved as separate segments, so awake gaps do not count as sleep. **Up for the day** ends the night and starts the daytime plan; if they were already awake, the plan uses their actual wake time. Night waking stays overnight across midnight and the usual morning wake time, with no daytime sleep alerts until you start the day. These transitions are shared between caregivers and reject stale taps.
+
 On your phone, pull down at the top of a screen and release to refresh family data, logs, and the sleep plan. Journal filters and unsaved settings stay in place.
 
 ## Quick logging

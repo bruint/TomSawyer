@@ -14,6 +14,8 @@ import { getActivity, getChild } from "../access.js";
 import { insertActivity, validateSleepOverlap } from "../activities.js";
 import { fail, nowIso } from "../http.js";
 import { removeUnusedPhotos } from "../photos.js";
+import { timerActions } from "../../shared/types.js";
+import { transitionNightSleep } from "../night-transitions.js";
 
 export function createActivityRouter(db: DB) {
   const router = Router();
@@ -106,17 +108,36 @@ export function createActivityRouter(db: DB) {
     const activity = getActivity(db, req, res);
     const body = z
       .object({
-        action: z.enum(["pause", "resume", "stop"]),
+        action: z.enum(timerActions),
         version: z.number().int(),
         at: z.string().datetime({ offset: true }).optional(),
       })
       .parse(req.body);
+    const at = body.at ? new Date(body.at).toISOString() : nowIso();
+    if (
+      body.action === "night-wake" ||
+      body.action === "back-asleep" ||
+      body.action === "up-for-day" ||
+      (body.action === "stop" &&
+        activity.kind === "sleep" &&
+        JSON.parse(String(activity.details)).sleepType === "night")
+    ) {
+      transitionNightSleep(
+        db,
+        activityFromRow(activity),
+        body.version,
+        body.action === "stop" ? "night-wake" : body.action,
+        at,
+        res.locals.user.id,
+      );
+      res.json({ ok: true });
+      return;
+    }
     if (activity.version !== body.version || activity.state === "complete")
       fail(
         409,
         "The timer changed on another device. Refresh to see its current state.",
       );
-    const at = body.at ? new Date(body.at).toISOString() : nowIso();
     if (
       Date.parse(at) < Date.parse(String(activity.started_at)) ||
       Date.parse(at) > Date.now() + 60000
