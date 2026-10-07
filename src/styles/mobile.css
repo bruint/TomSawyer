@@ -86,100 +86,8 @@
   .page-heading > a {
     margin-top: 18px;
   }
-  .dashboard-grid {
-    gap: 16px;
-  }
-  .sleep-hero {
-    min-height: 267px;
-    border-radius: 16px;
-  }
-  .hero-content {
-    padding: 24px 21px;
-  }
-  .sleep-hero h2 {
-    font-size: 36px;
-    margin-top: 25px;
-    letter-spacing: -1.4px;
-  }
-  .hero-top > .eyebrow {
-    font-size: 8px;
-  }
-  .sleep-hero p {
-    max-width: 245px;
-    font-size: 10px;
-  }
-  .sleep-hero .river-scene {
-    width: 220px;
-    right: -42px;
-    bottom: 26px;
-    opacity: 0.65;
-  }
-  .hero-button {
-    position: relative;
-    z-index: 3;
-    margin-top: 18px;
-  }
-  .hero-bottom {
-    padding: 12px 21px;
-    font-size: 8px;
-  }
-  .day-glance {
-    padding: 19px;
-  }
-  .glance-line {
-    margin-top: 18px;
-    font-size: 10px;
-  }
-  .glance-pair {
-    gap: 10px;
-  }
-  .glance-pair > div {
-    gap: 5px;
-  }
-  .glance-pair > div + div {
-    padding-left: 13px;
-  }
-  .glance-pair .mini-icon {
-    display: none;
-  }
-  .quick-section {
-    margin: 26px 0;
-  }
-  .tracker-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 9px;
-  }
-  .tracker-card {
-    padding: 14px 12px;
-    gap: 9px;
-    min-height: 74px;
-  }
-  .tracker-card > .activity-symbol {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-  }
-  .tracker-card > .activity-symbol svg {
-    width: 17px;
-  }
-  .tracker-card > svg {
-    display: none;
-  }
-  .tracker-card strong {
-    font-size: 10px;
-  }
-  .tracker-card small {
-    font-size: 8px;
-  }
-  .more-tracker {
-    grid-column: 1/-1;
-    min-height: 60px;
-  }
   .section-heading h2 {
     font-size: 14px;
-  }
-  .section-heading .text-button {
-    font-size: 9px;
   }
   .card {
     border-radius: 15px;
@@ -187,22 +95,6 @@
   }
   .card .section-heading {
     margin-bottom: 13px;
-  }
-  .strategy-preview > h3 {
-    font-size: 22px;
-  }
-  .entry-row {
-    padding: 15px 0;
-  }
-  .entry-main strong {
-    font-size: 11px;
-  }
-  .entry-main > span {
-    font-size: 10px;
-  }
-  .gentle-footer {
-    font-size: 8px;
-    padding-top: 20px;
   }
   .mobile-nav {
     display: flex;
@@ -238,124 +130,8 @@
   .mobile-nav button.active span {
     font-weight: 750;
   }
-  .running-timer {
-    padding: 15px;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .timer-digits {
-    font-size: 25px;
-  }
-  .running-timer small {
-    font-size: 9px;
-  }
-  .timer-actions {
-    gap: 5px;
-  }
-  .timer-actions button {
-    font-size: 10px;
-    padding: 0 12px;
-    height: 38px;
-  }
-  .strategy-layout {
-    gap: 17px;
-  }
-  .strategy-intro h2 {
-    font-size: 27px;
-    margin-top: 18px;
-  }
-  .strategy-intro > p {
-    font-size: 11px;
-  }
-  .strategy-numbers {
-    gap: 10px;
-  }
-  .strategy-numbers small {
-    font-size: 8px;
-  }
-  .strategy-numbers strong {
-    font-size: 16px;
-  }
-  .plan-step {
-    gap: 11px;
-    padding-bottom: 25px;
-  }
-  .plan-time {
-    width: 64px;
-  }
-  .plan-time strong {
-    font-size: 10px;
-  }
-  .plan-time small {
-    font-size: 8px;
-  }
-  .plan-node {
-    width: 31px;
-    height: 31px;
-  }
-  .plan-detail {
-    padding-top: 3px;
-  }
-  .plan-detail h3 {
-    font-size: 12px;
-  }
-  .plan-detail .badge {
-    font-size: 8px;
-    padding: 3px 6px;
-  }
-  .plan-detail p {
-    font-size: 10px;
-  }
-  .strategy-layout > aside {
-    display: block;
-  }
-  .strategy-layout > aside > .card + .card {
-    margin-top: 17px;
-  }
-  .plan-caveat {
-    padding-top: 17px;
-  }
-  .history-toolbar {
-    gap: 10px;
-  }
-  .date-controls {
-    flex: 1;
-  }
-  .history-toolbar > select {
-    flex: 1;
-    max-width: none;
-    min-width: 130px;
-  }
   .search-field {
     flex-basis: 100%;
-  }
-  .date-controls input {
-    width: 130px;
-  }
-  .history-day-label {
-    gap: 10px;
-  }
-  .history-day-label h2 {
-    font-size: 12px;
-  }
-  .history-day-label .text-button {
-    font-size: 9px;
-  }
-  .history-card .entry-row {
-    gap: 9px;
-  }
-  .history-card .entry-row > .activity-symbol {
-    width: 32px;
-    height: 32px;
-  }
-  .history-card .entry-main strong {
-    font-size: 11px;
-  }
-  .history-card .entry-main > span {
-    font-size: 9px;
-  }
-  .history-card .entry-meta strong {
-    font-size: 9px;
   }
   .report-controls {
     gap: 10px;
@@ -589,19 +365,7 @@
   }
 }
 @media (max-width: 760px) {
-  .sleep-hero p {
-    font-size: 11px;
-  }
-  .tracker-card strong {
-    font-size: 11px;
-  }
-  .tracker-card small {
-    font-size: 9px;
-  }
   .mobile-nav button {
     font-size: 9px;
-  }
-  .entry-main > span {
-    font-size: 11px;
   }
 }

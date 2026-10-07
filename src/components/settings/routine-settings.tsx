@@ -41,7 +41,7 @@ export function RoutineSettings({
         },
       });
       await onRefresh();
-      toast.success("Routine saved. Your plan has been updated.");
+      toast.success("Routine saved");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -50,7 +50,7 @@ export function RoutineSettings({
   }
   return (
     <div className="settings-grid">
-      <section className="card">
+      <section className="settings-section">
         <div className="section-heading">
           <h2>{child.name}’s sleep routine</h2>
           <Moon size={18} />
@@ -88,7 +88,7 @@ export function RoutineSettings({
                   })
                 }
               >
-                <option value="auto">Age-based starting point</option>
+                <option value="auto">Automatic</option>
                 {[0, 1, 2, 3, 4, 5, 6].map((n) => (
                   <option key={n} value={n}>
                     {n} {n === 1 ? "nap" : "naps"}
@@ -113,7 +113,7 @@ export function RoutineSettings({
           </div>
           <Field
             label="Custom wake windows (optional)"
-            hint="Minutes, separated by commas. For example: 150, 180, 210. Leave blank for age-based defaults."
+            hint="Minutes, comma separated. Blank uses age defaults."
           >
             <Input
               value={wakeWindowsInput}
@@ -138,7 +138,7 @@ export function RoutineSettings({
             </Field>
             <Field
               label="Sleep day starts"
-              hint="Keeps overnight sleep with the right day."
+              hint="Groups night sleep with the previous day."
             >
               <Input
                 type="time"
@@ -175,7 +175,7 @@ export function RoutineSettings({
         )}
       </section>
       <div>
-        <section className="card">
+        <section className="settings-section">
           <h2>Home screen trackers</h2>
           <div className="tracker-toggles">
             {activityKinds
@@ -211,7 +211,7 @@ export function RoutineSettings({
             Save home screen
           </Button>
         </section>
-        <section className="card appearance-card">
+        <section className="settings-section appearance-card">
           <h2>Appearance</h2>
           <div className="segmented">
             {[

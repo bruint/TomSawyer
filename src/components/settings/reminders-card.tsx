@@ -39,7 +39,7 @@ export function RemindersCard({ child }: { child: Child }) {
   }
   return (
     <>
-      <section className="card">
+      <section className="settings-section">
         <div className="section-heading">
           <h2>{child.name}’s reminders</h2>
           <Button

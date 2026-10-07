@@ -23,10 +23,19 @@
   align-items: start;
   gap: 23px;
 }
-.settings-grid > .card + .card {
-  margin-top: 0;
+.settings-section {
+  min-width: 0;
+  padding: 0 0 24px;
 }
-.settings-grid .card > .form-stack {
+.settings-section + .settings-section {
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+.settings-grid > .settings-section + .settings-section {
+  border-top: 0;
+  padding-top: 0;
+}
+.settings-section > .form-stack {
   margin-top: 22px;
 }
 .settings-grid p.muted {

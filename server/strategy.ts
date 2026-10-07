@@ -116,28 +116,28 @@ export function buildStrategy(
   const observed = !!(wakeLog || night || lastNap);
   const reasons: Strategy["reasons"] = [];
   const caveat =
-    "A flexible estimate from your logs and preferences, not medical advice. Follow your child’s cues and your clinician’s advice; never delay a needed feed to follow this plan.";
+    "Planning estimates, not medical advice. Follow your child’s cues and clinician’s advice; don’t delay needed feeds.";
   let window = getWindow(naps.length);
   if (lastNapMinutes !== null && lastNapMinutes < 40) {
     window = Math.max(45, window - 20);
     reasons.push({
       code: "short-nap",
       title: "A shorter wake window",
-      detail: `The last nap was ${lastNapMinutes} minutes. The next window is 20 minutes shorter to leave room for rest.`,
+      detail: `Last nap: ${lastNapMinutes} minutes. The next wake window is 20 minutes shorter.`,
     });
   }
   if (minutes(morning, expectedWake) > 30)
     reasons.push({
       code: "late-wake",
-      title: "A later start, a flexible day",
-      detail: `Morning started ${minutes(morning, expectedWake)} minutes later than your usual wake time. We’ll fit naps around the actual wake and avoid crowding bedtime.`,
+      title: "Late wake",
+      detail: `Wake was ${minutes(morning, expectedWake)} minutes late. Naps start from the actual wake time and fit around bedtime.`,
     });
   if (!observed)
     reasons.push({
       code: "missing-wake",
       title: "Log this morning’s wake",
       detail:
-        "This preview uses your usual morning time. Add a wake-up or finish an overnight sleep for a plan based on today.",
+        "Using your usual wake time. Log morning wake or finish night sleep to use today’s actual time.",
     });
   let next = awakeSince.plus({ minutes: window });
   if (skipped) {
@@ -151,7 +151,7 @@ export function buildStrategy(
     reasons.push({
       code: "missed-nap",
       title: "Reset after a missed nap",
-      detail: `Take a calm break and consider offering sleep again around ${next.toFormat("h:mm a")}. The rest of today has been recalculated without inventing a nap.`,
+      detail: `Take a break, then offer sleep around ${next.toFormat("h:mm a")}. Remaining naps and bedtime have been adjusted.`,
     });
   }
   const preferredBed = atLocal(day, child.settings.bedtime);
@@ -159,9 +159,8 @@ export function buildStrategy(
     generatedAt: iso(now),
     day: day.toISODate()!,
     status: "ready",
-    headline: "A little rhythm for the rest of today.",
-    summary:
-      "Follow the next window, then let the next sleep reshape the plan.",
+    headline: "Next sleep",
+    summary: "Log a wake or sleep to update the plan.",
     reasons,
     nextSleep: null,
     windowStart: null,
@@ -187,26 +186,25 @@ export function buildStrategy(
     return {
       ...base,
       status: "gentle",
-      headline: "Follow their cues. Find your rhythm.",
+      headline: "Follow sleep cues",
       summary:
-        "In these early weeks, sleep and feeds vary a lot. Keep things responsive: offer rest when sleepy cues appear, and log what happens. Timed predictions start at 2 months corrected age.",
+        "Offer rest when sleepy cues appear. Timed estimates start at 2 months corrected age.",
       bedtime: null,
     };
   if (now < expectedWake && !observed && !active)
     return {
       ...base,
       status: "night",
-      headline: "Keep the night gentle.",
-      summary: "Log the next morning wake to build a fresh daytime plan.",
+      headline: "Night time",
+      summary: "Log morning wake to start today’s plan.",
       bedtime: null,
     };
   if (active?.details.sleepType === "night")
     return {
       ...base,
       status: "sleeping",
-      headline: "Rest is the plan for now.",
-      summary:
-        "Overnight sleep is running. End the timer in the morning and today’s strategy will follow the actual wake-up.",
+      headline: "Sleeping",
+      summary: "End night sleep when they wake.",
       awakeSince: null,
       bedtime: null,
     };
@@ -214,16 +212,16 @@ export function buildStrategy(
     return {
       ...base,
       status: "night",
-      headline: "Time to leave the schedule behind.",
+      headline: "Bedtime",
       summary:
-        "If your child is awake, use your usual calming bedtime routine. Log overnight sleep when it begins; tomorrow’s plan starts from the next wake.",
+        "Use your usual bedtime routine. Log night sleep when it starts.",
       bedtime: null,
     };
   if (active) {
     base.status = "sleeping";
-    base.headline = "They’re resting. You can, too.";
+    base.headline = "Sleeping";
     base.summary =
-      "This plan assumes a typical nap. When they wake, finish the timer and the remaining day will update.";
+      "Times assume a typical nap. Finish the timer when they wake to update the plan.";
     next = maxDate(
       DateTime.fromISO(active.startedAt).plus({
         minutes: child.settings.napMinutes,
@@ -238,7 +236,7 @@ export function buildStrategy(
       code: "window-passed",
       title: "The window has passed",
       detail:
-        "Offer a calm opportunity to sleep now if your child seems ready. If you already tried, log a missed nap for a fresh retry plan.",
+        "Offer sleep if they seem ready. If the attempt ended, log a missed nap to get a retry time.",
     });
     next = now.plus({ minutes: 5 });
     base.status = "settling";
@@ -267,7 +265,7 @@ export function buildStrategy(
       reasons.push({
         code: "short-final-nap",
         title: "Room for a shorter final nap",
-        detail: `A ${duration}-minute final nap leaves room for your usual evening wake window. This is a planning option; follow your child’s cues.`,
+        detail: `A ${duration}-minute final nap leaves room before bedtime. Follow sleep cues.`,
       });
     }
     const end = cursor.plus({ minutes: duration });
@@ -279,7 +277,7 @@ export function buildStrategy(
         code: "protect-bedtime",
         title: "Keep some space before bedtime",
         detail:
-          "Another full nap would crowd your preferred bedtime. Consider an earlier night; use a short rest only if your child needs it.",
+          "Another full nap would push bedtime later. Consider an earlier night, or a short rest if needed.",
       });
       break;
     }
@@ -289,7 +287,7 @@ export function buildStrategy(
       at: iso(cursor),
       endAt: iso(end),
       title: `Nap ${projectedIndex + 1}`,
-      detail: `Allow about ${duration} minutes as a planning estimate. Recalculate from the actual wake-up.`,
+      detail: `Estimated ${duration} minutes. Adjusts from the actual wake time.`,
       tentative: steps.length > 0 || !!active,
     });
     lastEnd = end;
@@ -316,15 +314,14 @@ export function buildStrategy(
     base.alternatives.push({
       title: "If bedtime still feels too far away",
       detail:
-        "Offer a short opportunity to rest if your child needs it. Log the actual sleep and we’ll rebuild the evening around it.",
+        "Offer a short rest if needed, then log it to adjust the evening.",
     });
   steps.push({
     id: "bedtime",
     kind: "bedtime",
     at: iso(bed),
     title: "Bedtime",
-    detail:
-      "Keep the familiar routine. This time can move with your child’s cues.",
+    detail: "Use your usual routine and follow sleep cues.",
     tentative: steps.length > 0 || !!active,
   });
   const first = steps[0];
@@ -343,7 +340,7 @@ export function buildStrategy(
       id: "wind-down",
       kind: "wind-down",
       at: iso(windDown),
-      title: "A quieter few minutes",
+      title: "Wind down",
       detail: `Begin your usual ${child.settings.windDownMinutes}-minute wind-down.`,
       tentative: !!active,
     },
@@ -351,30 +348,30 @@ export function buildStrategy(
   ];
   if (!active) {
     base.headline = skipped
-      ? "A missed nap. A new plan."
+      ? "After a missed nap"
       : lastNapMinutes !== null && lastNapMinutes < 40
-        ? "A short nap doesn’t have to derail the day."
+        ? "After a short nap"
         : reasons.some((r) => r.code === "late-wake")
-          ? "A late start. Still a lovely day."
-          : "A little rhythm for the rest of today.";
-    base.summary = `${first.kind === "bedtime" ? "Aim for bedtime" : "Offer the next nap"} around ${firstTime.setZone(child.timezone).toFormat("h:mm a")}. ${steps.length > 1 ? "The remaining naps and bedtime adapt each time you log sleep." : "Keep the evening calm and follow sleepy cues."}`;
+          ? "After a late wake"
+          : "Next sleep";
+    base.summary = `${first.kind === "bedtime" ? "Aim for bedtime" : "Offer the next nap"} around ${firstTime.setZone(child.timezone).toFormat("h:mm a")}.`;
   }
   if (!reasons.length)
     reasons.push({
       code: "routine",
-      title: "Following today’s rhythm",
+      title: "Usual routine",
       detail: `Using ${window} minutes awake, ${naps.length} completed naps, and your preferred ${child.settings.bedtime} bedtime.`,
     });
   base.alternatives.push(
     {
       title: "If the next nap is short",
       detail:
-        "Finish the sleep timer. A nap under 40 minutes shortens the following wake window by 20 minutes and replans the evening.",
+        "Finish the timer. Naps under 40 minutes shorten the next wake window by 20 minutes.",
     },
     {
       title: "If sleep doesn’t happen",
       detail:
-        "Log “Missed nap” when the attempt ends. We’ll offer a retry time and reconsider the remaining naps and bedtime.",
+        "Log “Missed nap” to get a retry time and adjusted naps and bedtime.",
     },
   );
   return base;

@@ -216,3 +216,21 @@
   margin-top: 20px;
   font-size: 11px;
 }
+
+.disclosure {
+  border-top: 1px solid var(--border);
+}
+.disclosure > summary {
+  cursor: pointer;
+  min-height: 52px;
+  padding: 16px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.disclosure > summary::marker {
+  color: var(--muted);
+}
+.disclosure > summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}

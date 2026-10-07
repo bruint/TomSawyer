@@ -106,3 +106,16 @@ export function transaction<T>(db: DB, run: () => T): T {
     throw e;
   }
 }
+export function activitiesOn(
+  db: DB,
+  childId: string,
+  start: string,
+  end: string,
+): Activity[] {
+  return db
+    .prepare(
+      "SELECT a.*,u.name AS author_name FROM activities a JOIN users u ON u.id=a.created_by WHERE child_id=? AND started_at>=? AND started_at<? ORDER BY started_at DESC",
+    )
+    .all(childId, start, end)
+    .map(activityFromRow);
+}

@@ -186,7 +186,8 @@ svg {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: 12px;
+  min-height: 44px;
   font-weight: 650;
   color: var(--primary);
   background: none;

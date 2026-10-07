@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import { elapsedMs, type Activity, type Child } from "../../shared/types";
 export function duration(minutes: number) {
+  if (minutes <= 0) return "0m";
   if (minutes < 1) return "<1m";
   const h = Math.floor(minutes / 60),
     m = Math.round(minutes % 60);
@@ -10,6 +11,12 @@ export const time = (iso: string | null | undefined, zone: string) =>
   iso
     ? DateTime.fromISO(iso).setZone(zone).toFormat("h:mm a").toLowerCase()
     : "—";
+export function timeRange(start: string, end: string, zone: string) {
+  const first = time(start, zone),
+    last = time(end, zone);
+  const samePeriod = first.slice(-2) === last.slice(-2);
+  return `${samePeriod ? first.replace(/ [ap]m$/, "") : first}–${last}`;
+}
 export function relative(iso: string | null | undefined) {
   if (!iso) return "Not logged yet";
   const mins = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60000));
@@ -29,7 +36,7 @@ export function describe(a: Activity) {
   const d = a.details;
   switch (a.kind) {
     case "sleep":
-      return `${d.sleepType === "night" ? "Night sleep" : "Nap"}${a.endedAt ? " · " + duration(elapsedMs(a) / 60000) : " · in progress"}`;
+      return `${d.sleepType === "night" ? "Night sleep" : "Nap"}${a.endedAt ? " · " + duration(elapsedMs(a) / 60000) : ""}`;
     case "nursing":
       return `${d.side || "Both sides"}${a.endedAt ? " · " + duration(elapsedMs(a) / 60000) : d.leftMinutes || d.rightMinutes ? " · " + duration(Number(d.leftMinutes || 0) + Number(d.rightMinutes || 0)) : ""}`;
     case "bottle":
@@ -65,8 +72,8 @@ export function describe(a: Activity) {
     case "wake":
       return "Up for the day";
     case "skipped_nap":
-      return "Nap didn’t happen · plan adjusted";
+      return "Missed nap";
     default:
-      return a.notes || "A note for your family";
+      return a.notes || "Note";
   }
 }

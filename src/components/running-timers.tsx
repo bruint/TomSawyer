@@ -14,12 +14,14 @@ export function RunningTimers({
   events,
   child,
   onTimer,
+  onEdit,
   disabled = false,
 }: {
   disabled?: boolean;
   events: Activity[];
   child: Child;
   onTimer: (a: Activity, action: "pause" | "resume" | "stop") => void;
+  onEdit: (a: Activity) => void;
 }) {
   const [, tick] = useState(0);
   useEffect(() => {
@@ -36,18 +38,25 @@ export function RunningTimers({
               <ActivityIcon kind={a.kind} />
             </span>
             <div>
-              <span className="eyebrow">
-                {kindLabels[a.kind]}{" "}
-                {a.state === "paused" ? "PAUSED" : "IN PROGRESS"}
+              <span className="timer-label">
+                {kindLabels[a.kind]}
+                {a.state === "paused" ? " · Paused" : ""}
               </span>
               <strong className="timer-digits">
                 {new Date(elapsedMs(a)).toISOString().slice(11, 19)}
               </strong>
-              <small>
-                Started {time(a.startedAt, child.timezone)} · {a.authorName}
-              </small>
+              <small>Since {time(a.startedAt, child.timezone)}</small>
             </div>
             <div className="timer-actions">
+              {a.kind === "sleep" && (
+                <Button
+                  disabled={disabled}
+                  variant="ghost"
+                  onClick={() => onEdit(a)}
+                >
+                  Edit
+                </Button>
+              )}
               {a.kind !== "sleep" && (
                 <Button
                   disabled={disabled}

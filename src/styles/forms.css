@@ -54,6 +54,21 @@
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
+.ongoing-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+.sleep-end-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.log-extra > .form-stack {
+  padding: 6px 0 16px;
+}
 .form-hint {
   font-size: 10px;
   line-height: 1.8;

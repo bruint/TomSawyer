@@ -1,68 +1,4 @@
 @media (max-width: 980px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-  .day-glance {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 24px;
-  }
-  .day-glance .section-label {
-    grid-column: 1/-1;
-  }
-  .glance-line {
-    grid-column: 1;
-  }
-  .sleep-progress {
-    grid-column: 1;
-  }
-  .day-glance > small {
-    grid-column: 1;
-  }
-  .glance-pair {
-    grid-column: 2;
-    grid-row: 2/5;
-    align-items: center;
-    justify-content: center;
-    padding: 15px 0;
-  }
-  .glance-bedtime {
-    grid-column: 1/-1;
-    margin-top: 14px;
-  }
-  .sleep-hero {
-    min-height: 275px;
-  }
-  .sleep-hero .river-scene {
-    width: 285px;
-  }
-  .sleep-hero p {
-    max-width: 330px;
-  }
-  .hero-top > .eyebrow {
-    font-size: 10px;
-  }
-  .sleep-hero h2 {
-    font-size: 43px;
-  }
-  .dashboard-grid.lower {
-    grid-template-columns: 1fr;
-  }
-  .strategy-layout {
-    grid-template-columns: 1fr;
-  }
-  .strategy-layout > aside {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-  }
-  .strategy-layout > aside .card + .card {
-    margin-top: 0;
-  }
-  .plan-caveat {
-    grid-column: 1/-1;
-    padding-top: 0;
-  }
   .settings-grid {
     grid-template-columns: 1fr;
   }
@@ -90,9 +26,6 @@
   .page-heading > button svg {
     width: 18px;
     height: 18px;
-  }
-  .gentle-footer {
-    flex-direction: column;
   }
   .sync-label {
     display: none;

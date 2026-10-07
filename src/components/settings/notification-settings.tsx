@@ -15,7 +15,7 @@ export function NotificationSettings({
   return (
     <div className="settings-grid">
       <div>
-        <section className="card">
+        <section className="settings-section">
           <div className="section-heading">
             <h2>Device notifications</h2>
             <BellRing size={20} />
@@ -23,8 +23,8 @@ export function NotificationSettings({
           <div className="notification-state">
             <span className={`status-dot ${push.enabled ? "" : "off"}`} />
             {push.enabled
-              ? "Notifications enabled on this device"
-              : "This device hasn’t enabled notifications"}
+              ? "Enabled on this device"
+              : "Disabled on this device"}
           </div>
           <Button
             disabled={push.busy}
@@ -39,24 +39,16 @@ export function NotificationSettings({
             </Button>
           )}
         </section>
-        <section className="card install-card">
+        <section className="settings-section install-card">
           <Smartphone size={25} />
           <h2>Install app</h2>
           <h3>iPhone & iPad</h3>
           <p>
-            In Safari, tap Share → Add to Home Screen. Open TomSawyer from that
-            icon, then enable notifications. Requires iOS or iPadOS 16.4 or
-            later.
+            Safari → Share → Add to Home Screen. Open the app to enable
+            notifications. Requires iOS 16.4+.
           </p>
           <h3>Android</h3>
-          <p>
-            In Chrome, choose Install app or Add to Home screen. Allow
-            notifications when prompted.
-          </p>
-          <small>
-            Push requires HTTPS, internet access, and your device’s permission.
-            Focus, battery settings, or your browser may delay delivery.
-          </small>
+          <p>Chrome → Install app or Add to Home screen.</p>
         </section>
       </div>
       <RemindersCard child={child} />

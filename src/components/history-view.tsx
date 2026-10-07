@@ -1,7 +1,8 @@
-import { CalendarDays, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { DateTime } from "luxon";
 import { useState } from "react";
 import { kindLabels, type Activity, type Child } from "../../shared/types";
+import { useHistoryDay } from "../hooks/use-history-day";
 import { EntryList } from "./entry-list";
 import { PageHeader } from "./page-header";
 import { Button } from "./ui/button";
@@ -19,72 +20,42 @@ export function HistoryView({
   onEdit: (a: Activity) => void;
   onLog: () => void;
 }) {
-  const [date, setDate] = useState(
-    DateTime.now().setZone(child.timezone).toISODate()!,
-  );
+  const [date, setDate] = useState("");
   const [kind, setKind] = useState("all");
   const [query, setQuery] = useState("");
-  const [all, setAll] = useState(false);
-  const filtered = events.filter(
+  const history = useHistoryDay(child, events, date);
+  const day = date
+    ? DateTime.fromISO(date, { zone: child.timezone })
+    : DateTime.now().setZone(child.timezone);
+  const filtered = history.entries.filter(
     (a) =>
-      (all ||
-        DateTime.fromISO(a.startedAt).setZone(child.timezone).toISODate() ===
-          date) &&
       (kind === "all" || a.kind === kind) &&
-      JSON.stringify([a.notes, a.details, a.authorName])
+      JSON.stringify([kindLabels[a.kind], a.notes, a.details, a.authorName])
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
-  const day = DateTime.fromISO(date, { zone: child.timezone });
-  const groups = new Map<string, Activity[]>();
-  for (const a of filtered) {
-    const key = DateTime.fromISO(a.startedAt)
-      .setZone(child.timezone)
-      .toISODate()!;
-    groups.set(key, [...(groups.get(key) || []), a]);
-  }
   return (
     <>
       <PageHeader
         child={child}
         title="Journal"
-
-        action={<Button onClick={onLog}>Add an entry</Button>}
+        action={
+          <Button onClick={onLog}>
+            <Plus />
+            Add entry
+          </Button>
+        }
       />
-      <section className="card history-card">
-        <div className="history-toolbar">
-          <div className="date-controls">
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Previous day"
-              onClick={() => {
-                setDate(day.minus({ days: 1 }).toISODate()!);
-                setAll(false);
-              }}
-            >
-              <ChevronLeft />
-            </Button>
+      <section className="journal">
+        <div className="journal-filters">
+          <div className="search-field">
+            <Search size={17} />
             <Input
-              type="date"
-              aria-label="Activity date"
-              value={date}
-              onChange={(e) => {
-                setDate(e.target.value);
-                setAll(false);
-              }}
+              aria-label="Search entries"
+              placeholder="Search entries"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Next day"
-              onClick={() => {
-                setDate(day.plus({ days: 1 }).toISODate()!);
-                setAll(false);
-              }}
-            >
-              <ChevronRight />
-            </Button>
           </div>
           <Select
             aria-label="Activity category"
@@ -98,46 +69,62 @@ export function HistoryView({
               </option>
             ))}
           </Select>
-          <div className="search-field">
-            <Search size={17} />
+          <div className="journal-date-controls">
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Previous day"
+              onClick={() => setDate(day.minus({ days: 1 }).toISODate()!)}
+            >
+              <ChevronLeft />
+            </Button>
             <Input
-              aria-label="Search entries"
-              placeholder="Search notes, food, caregiver…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              type="date"
+              aria-label="Activity date"
+              value={date}
+              max={DateTime.now().setZone(child.timezone).toISODate()!}
+              onChange={(e) => setDate(e.target.value)}
             />
-          </div>
-        </div>
-        <div className="history-day-label">
-          <h2>{all ? "Recent history" : day.toFormat("cccc, d LLLL")}</h2>
-          <button className="text-button" onClick={() => setAll(!all)}>
-            {all ? "Show selected day" : "Show last 90 days"}
-          </button>
-        </div>
-        {filtered.length ? (
-          Array.from(groups).map(([date, rows]) => (
-            <div key={date}>
-              {all && (
-                <div className="history-group-label">
-                  {DateTime.fromISO(date).toFormat("ccc, d LLL")}
-                </div>
-              )}
-              <EntryList child={child} events={rows} onEdit={onEdit} />
-            </div>
-          ))
-        ) : (
-          <div className="empty-state">
-            <CalendarDays size={34} />
-            <h3>No moments logged here yet.</h3>
-            <p>Choose another day, adjust the filters, or add an entry.</p>
-            <Button variant="outline" onClick={onLog}>
-              Log a moment
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Next day"
+              disabled={
+                !date ||
+                day.startOf("day") >=
+                  DateTime.now().setZone(child.timezone).startOf("day")
+              }
+              onClick={() => setDate(day.plus({ days: 1 }).toISODate()!)}
+            >
+              <ChevronRight />
             </Button>
           </div>
-        )}
-        <div className="card-footer muted">
-          {filtered.length} entries · All times in {child.timezone}
         </div>
+        <div className="journal-heading">
+          <h2>{date ? day.toFormat("cccc, d LLLL yyyy") : "Recent history"}</h2>
+          {date && (
+            <button className="text-button" onClick={() => setDate("")}>
+              All recent entries
+            </button>
+          )}
+        </div>
+        {history.loading ? (
+          <div className="loading">Loading entries…</div>
+        ) : history.error ? (
+          <div className="history-error">
+            <p>{history.error}</p>
+            <Button variant="outline" onClick={history.retry}>
+              Try again
+            </Button>
+          </div>
+        ) : (
+          <EntryList
+            child={child}
+            events={filtered}
+            onEdit={onEdit}
+            groupByDay={!date}
+          />
+        )}
       </section>
     </>
   );

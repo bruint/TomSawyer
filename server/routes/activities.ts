@@ -1,8 +1,14 @@
 import { Router } from "express";
 import { DateTime } from "luxon";
 import { z } from "zod";
-import { activitiesFor, activityFromRow, transaction, type DB } from "../db.js";
-import { activitySchema } from "../validation.js";
+import {
+  activitiesFor,
+  activitiesOn,
+  activityFromRow,
+  transaction,
+  type DB,
+} from "../db.js";
+import { activitySchema, daySchema } from "../validation.js";
 
 import { getActivity, getChild } from "../access.js";
 import { insertActivity, validateSleepOverlap } from "../activities.js";
@@ -13,6 +19,21 @@ export function createActivityRouter(db: DB) {
   const router = Router();
   router.get("/children/:childId/activities", (req, res) => {
     const child = getChild(db, req, res);
+    const date = daySchema.optional().parse(req.query.date);
+    if (date) {
+      const start = DateTime.fromISO(date, { zone: child.timezone }).startOf(
+        "day",
+      );
+      res.json(
+        activitiesOn(
+          db,
+          child.id,
+          start.toUTC().toISO()!,
+          start.plus({ days: 1 }).toUTC().toISO()!,
+        ),
+      );
+      return;
+    }
     const days = z.coerce
       .number()
       .int()
@@ -45,13 +66,18 @@ export function createActivityRouter(db: DB) {
   router.put("/activities/:activityId", (req, res) => {
     const existingActivity = getActivity(db, req, res);
     const body = activitySchema.parse(req.body);
-    if (existingActivity.state !== "complete")
-      fail(409, "Finish the timer before editing this entry.");
-    if (body.state !== "complete" || body.version !== existingActivity.version)
+    if (body.version !== existingActivity.version)
       fail(
         409,
         "This entry changed on another device. Refresh before editing.",
       );
+    const editingSleep =
+      existingActivity.kind === "sleep" && body.kind === "sleep";
+    if (
+      !editingSleep &&
+      (existingActivity.state !== "complete" || body.state !== "complete")
+    )
+      fail(409, "Finish the timer before editing this entry.");
     validateSleepOverlap(
       db,
       existingActivity.child_id,
@@ -59,11 +85,12 @@ export function createActivityRouter(db: DB) {
       existingActivity.id,
     );
     db.prepare(
-      "UPDATE activities SET kind=?,started_at=?,ended_at=?,paused_ms=?,details=?,notes=?,version=version+1,updated_at=? WHERE id=?",
+      "UPDATE activities SET kind=?,started_at=?,ended_at=?,state=?,paused_at=NULL,paused_ms=?,details=?,notes=?,version=version+1,updated_at=? WHERE id=?",
     ).run(
       body.kind,
       body.startedAt,
       body.endedAt,
+      body.state,
       body.pausedMs,
       JSON.stringify(body.details),
       body.notes,

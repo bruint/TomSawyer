@@ -152,7 +152,7 @@ export default function App() {
       );
       return;
     }
-    if (activity.state !== "complete") {
+    if (activity.state !== "complete" && activity.kind !== "sleep") {
       navigate("today");
       toast.info("Use the running timer to pause or finish this session.");
       return;
@@ -267,7 +267,6 @@ export default function App() {
                 onTimer={controlTimer}
                 quickLabel={quickActions.label}
                 quickBusy={quickActions.busy}
-                onMore={() => quickActions.setSheet("more")}
               />
             )}
             {page === "strategy" && (
@@ -282,6 +281,7 @@ export default function App() {
             )}
             {page === "history" && (
               <HistoryView
+                key={child.id}
                 child={child}
                 events={data.events}
                 onEdit={editActivity}

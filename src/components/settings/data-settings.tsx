@@ -90,7 +90,7 @@ export function DataSettings({
   return (
     <div className="settings-grid">
       <div>
-        <section className="card">
+        <section className="settings-section">
           <h2>Export history</h2>
           <div className="button-row">
             <Button variant="outline" asChild>
@@ -107,11 +107,11 @@ export function DataSettings({
             </Button>
           </div>
           <p className="form-hint">
-            Exports include logs and notes. Photo files, account access, and
-            reminder settings are preserved in a server database backup.
+            Logs and notes only. Use a server backup for photos, accounts and
+            reminders.
           </p>
         </section>
-        <section className="card">
+        <section className="settings-section">
           <h2>Import history</h2>
           <p className="muted">
             Import a TomSawyer JSON or CSV export. Generic CSVs need kind/type,
@@ -145,16 +145,12 @@ export function DataSettings({
                       Row {e.row}: {e.message}
                     </p>
                   ))}
-                  <p>
-                    Fix errors in the source file and try again. Nothing has
-                    been imported.
-                  </p>
+                  <p>Fix these errors and try again. Nothing imported.</p>
                 </div>
               ) : (
                 <>
                   <p>
-                    Repeated IDs are skipped. Unmapped CSV fields are kept in
-                    notes. Review your file before continuing.
+                    Duplicate IDs are skipped. Extra CSV fields go into notes.
                   </p>
                   <Button disabled={importBusy} onClick={commitImport}>
                     <Check />
@@ -167,7 +163,7 @@ export function DataSettings({
         </section>
       </div>
       <div>
-        <section className="card">
+        <section className="settings-section">
           <h2>Change your password</h2>
           <form className="form-stack" onSubmit={changePassword}>
             <Field label="Current password">
@@ -195,7 +191,7 @@ export function DataSettings({
           </form>
         </section>
         {owner && (
-          <section className="card danger-card">
+          <section className="settings-section danger-card">
             <h2>Delete child profile</h2>
             <p>
               This permanently removes {child.name}’s logs and reminders for

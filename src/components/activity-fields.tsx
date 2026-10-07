@@ -74,24 +74,29 @@ export function ActivityFields({
       {kind === "sleep" && (
         <>
           {selectField("sleepType", "Type of sleep", ["nap", "night"])}
-          <div className="form-row">
-            {selectField("settledBy", "Settled with", [
-              "Not specified",
-              "Independently",
-              "Rocking",
-              "Nursing",
-              "Held",
-              "Pram",
-              "Car",
-            ])}
-            {selectField("mood", "Woke feeling", [
-              "Not specified",
-              "Content",
-              "Upset",
-              "Woken by caregiver",
-            ])}
-          </div>
-          {numberField("settlingMinutes", "Time to fall asleep", "min")}
+          <details className="disclosure log-extra">
+            <summary>Sleep details</summary>
+            <div className="form-stack">
+              <div className="form-row">
+                {selectField("settledBy", "Settled with", [
+                  "Not specified",
+                  "Independently",
+                  "Rocking",
+                  "Nursing",
+                  "Held",
+                  "Pram",
+                  "Car",
+                ])}
+                {selectField("mood", "Woke feeling", [
+                  "Not specified",
+                  "Content",
+                  "Upset",
+                  "Woken by caregiver",
+                ])}
+              </div>
+              {numberField("settlingMinutes", "Time to fall asleep", "min")}
+            </div>
+          </details>
         </>
       )}
       {kind === "nursing" && (
@@ -101,10 +106,7 @@ export function ActivityFields({
             {numberField("leftMinutes", "Left side", "min")}
             {numberField("rightMinutes", "Right side", "min")}
           </div>
-          <p className="form-hint">
-            Side minutes are optional. The session timer records total time;
-            pause it for breaks.
-          </p>
+          <p className="form-hint">Side minutes are optional.</p>
         </>
       )}
       {(kind === "bottle" || kind === "pumping") && (
@@ -207,8 +209,7 @@ export function ActivityFields({
             ])}
           </div>
           <p className="form-hint">
-            Record the dose you gave. Follow the label or your clinician’s
-            instructions; TomSawyer does not calculate doses.
+            Log the dose given. Doses aren’t calculated here.
           </p>
         </>
       )}
@@ -310,17 +311,10 @@ export function ActivityFields({
             "Moderate",
             "Strong",
           ])}
-          <p className="form-hint">
-            A record to share with your care team. Follow their guidance on when
-            to call or seek care.
-          </p>
         </>
       )}
       {kind === "skipped_nap" && (
-        <div className="notice sage">
-          Save the time the nap attempt ended. Your strategy will recalculate
-          the retry time and the rest of the day.
-        </div>
+        <div className="notice sage">Use the time the nap attempt ended.</div>
       )}
     </>
   );

@@ -18,6 +18,7 @@ import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Field, Select } from "./ui/field";
 import { Input } from "./ui/input";
+import { Switch } from "./ui/switch";
 
 const timed = ["sleep", "nursing", "pumping", "activity", "contraction"];
 
@@ -37,7 +38,11 @@ export function LogDialog({
   onDelete?: (entry: Activity) => Promise<void>;
 }) {
   const [kind, setKind] = useState<ActivityKind>(entry?.kind || initialKind);
-  const [mode, setMode] = useState<"complete" | "active">("complete");
+  const [mode, setMode] = useState<"complete" | "active">(
+    entry?.kind === "sleep" && entry.state !== "complete"
+      ? "active"
+      : "complete",
+  );
   const local = (iso?: string | null) =>
     DateTime.fromISO(iso || new Date().toISOString())
       .setZone(child.timezone)
@@ -72,6 +77,11 @@ export function LogDialog({
   const [photoBusy, setPhotoBusy] = useState(false);
   const updateDetail = (key: string, value: string | number) =>
     setDetails((previous) => ({ ...previous, [key]: value }));
+  function timestamp(value: string, original?: string | null) {
+    // Keep seconds from quick logs when only another field is being edited.
+    if (original && value === local(original)) return original;
+    return DateTime.fromISO(value, { zone: child.timezone }).toUTC().toISO();
+  }
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -85,12 +95,10 @@ export function LogDialog({
       )
         clean.unit = "ml";
       if (kind === "sleep" && !clean.sleepType) clean.sleepType = "nap";
-      const startedAt = DateTime.fromISO(started, { zone: child.timezone })
-        .toUTC()
-        .toISO();
+      const startedAt = timestamp(started, entry?.startedAt);
       const endedAt =
         timed.includes(kind) && mode === "complete"
-          ? DateTime.fromISO(ended, { zone: child.timezone }).toUTC().toISO()
+          ? timestamp(ended, entry?.endedAt)
           : null;
       if (
         !startedAt ||
@@ -166,14 +174,14 @@ export function LogDialog({
               </Select>
             </Field>
           )}
-          {timed.includes(kind) && !entry && (
+          {timed.includes(kind) && kind !== "sleep" && !entry && (
             <div className="segmented">
               <button
                 type="button"
                 className={mode === "complete" ? "selected" : ""}
                 onClick={() => setMode("complete")}
               >
-                Log a session
+                Finished
               </button>
               <button
                 type="button"
@@ -183,19 +191,18 @@ export function LogDialog({
                   setStarted(local());
                 }}
               >
-                Start a timer
+                Ongoing
               </button>
             </div>
           )}
           <div
             className={
-              timed.includes(kind) && mode === "complete" ? "form-row" : ""
+              kind === "sleep" || (timed.includes(kind) && mode === "complete")
+                ? "form-row"
+                : ""
             }
           >
-            <Field
-              label={timed.includes(kind) ? "Started" : "When"}
-              hint={child.timezone}
-            >
+            <Field label={timed.includes(kind) ? "Started" : "When"}>
               <Input
                 type="datetime-local"
                 required
@@ -203,15 +210,42 @@ export function LogDialog({
                 onChange={(e) => setStarted(e.target.value)}
               />
             </Field>
-            {timed.includes(kind) && mode === "complete" && (
-              <Field label="Ended">
-                <Input
-                  type="datetime-local"
-                  required
-                  value={ended}
-                  onChange={(e) => setEnded(e.target.value)}
-                />
-              </Field>
+            {kind === "sleep" ? (
+              <div className="field">
+                <div className="sleep-end-heading">
+                  <span>Ended</span>
+                  <label className="ongoing-option">
+                    <Switch
+                      checked={mode === "active"}
+                      onCheckedChange={(checked) =>
+                        setMode(checked ? "active" : "complete")
+                      }
+                    />
+                    Ongoing
+                  </label>
+                </div>
+                {mode === "complete" && (
+                  <Input
+                    type="datetime-local"
+                    aria-label="Ended"
+                    required
+                    value={ended}
+                    onChange={(e) => setEnded(e.target.value)}
+                  />
+                )}
+              </div>
+            ) : (
+              timed.includes(kind) &&
+              mode === "complete" && (
+                <Field label="Ended">
+                  <Input
+                    type="datetime-local"
+                    required
+                    value={ended}
+                    onChange={(e) => setEnded(e.target.value)}
+                  />
+                </Field>
+              )
             )}
           </div>
           <ActivityFields
@@ -222,13 +256,12 @@ export function LogDialog({
             photoBusy={photoBusy}
             onPhoto={uploadPhoto}
           />
-          <Field label={kind === "note" ? "Your note" : "Notes (optional)"}>
+          <Field label="Notes">
             <textarea
               className="input textarea"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               maxLength={3000}
-              placeholder="Anything the next caregiver should know?"
               required={kind === "note"}
             />
           </Field>
@@ -250,17 +283,17 @@ export function LogDialog({
             <Button type="submit" disabled={busy || photoBusy}>
               {busy ? (
                 <Loader2 className="spin" />
-              ) : mode === "active" ? (
+              ) : mode === "active" && !entry ? (
                 <Play />
               ) : (
                 <Save />
               )}
-              {mode === "active" ? "Start timer" : "Save entry"}
+              {mode === "active" && !entry ? "Start timer" : "Save"}
             </Button>
           </div>
           {confirmDelete && (
             <div className="notice error">
-              <p>Delete this entry for everyone in your family?</p>
+              <p>Delete this entry?</p>
               <Button
                 type="button"
                 size="sm"

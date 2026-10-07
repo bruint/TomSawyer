@@ -45,7 +45,7 @@ export function FamilySettings({
   }
   return (
     <div className="settings-grid">
-      <section className="card">
+      <section className="settings-section">
         <div className="section-heading">
           <h2>Children</h2>
           {owner && (
@@ -73,11 +73,8 @@ export function FamilySettings({
             )}
           </div>
         ))}
-        <p className="form-hint">
-          Switch between children using their name at the top of the app.
-        </p>
       </section>
-      <section className="card">
+      <section className="settings-section">
         <div className="section-heading">
           <h2>Caregivers</h2>
           <UserPlus size={19} />
@@ -134,18 +131,11 @@ export function FamilySettings({
                 >
                   <Copy />
                 </Button>
-                <small>
-                  One use · expires in 7 days. Share it directly with your
-                  caregiver.
-                </small>
+                <small>One use · expires in 7 days.</small>
               </div>
             )}
           </>
         )}
-        <p className="form-hint">
-          Every caregiver has a separate login. Everyone can log and correct
-          entries; the owner manages profiles and access.
-        </p>
       </section>
     </div>
   );

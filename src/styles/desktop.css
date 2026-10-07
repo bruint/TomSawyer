@@ -2,20 +2,8 @@
   .main-content {
     padding-top: 42px;
   }
-  .sleep-hero {
-    min-height: 305px;
-  }
-  .sleep-hero h2 {
-    font-size: 47px;
-  }
-  .sleep-hero .river-scene {
-    width: 300px;
-  }
   .page-heading h1 {
     font-size: 39px;
-  }
-  .tracker-card {
-    padding: 19px;
   }
 }
 @media (max-width: 1200px) {
@@ -38,38 +26,11 @@
   .topbar {
     padding: 0 27px;
   }
-  .dashboard-grid {
-    grid-template-columns: minmax(0, 1.7fr) minmax(250px, 1fr);
-    gap: 17px;
-  }
-  .hero-content {
-    padding: 24px;
-  }
-  .sleep-hero h2 {
-    font-size: 36px;
-  }
-  .sleep-hero .river-scene {
-    width: 215px;
-    right: -35px;
-  }
-  .sleep-hero p {
-    max-width: 240px;
-  }
-  .tracker-card {
-    padding: 14px 12px;
-    gap: 9px;
-  }
-  .tracker-card small {
-    font-size: 8px;
-  }
   .card {
     padding: 20px;
   }
   .page-heading h1 {
     font-size: 32px;
-  }
-  .strategy-layout {
-    grid-template-columns: 1.6fr 1fr;
   }
   .report-stats {
     gap: 12px;
@@ -89,13 +50,7 @@
   .auth-copy h1 {
     font-size: 45px;
   }
-  .history-toolbar {
-    flex-wrap: wrap;
-  }
   .search-field {
     min-width: 180px;
-  }
-  .plan-node:after {
-    display: none;
   }
 }

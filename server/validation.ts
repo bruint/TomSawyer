@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DateTime, IANAZone } from "luxon";
 import { activityKinds, defaultSettings } from "../shared/types.js";
 export const clockSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-const daySchema = z
+export const daySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine((v) => DateTime.fromISO(v).isValid, "Enter a valid date");
