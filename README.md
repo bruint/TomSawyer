@@ -46,7 +46,7 @@ Web Push needs outbound HTTPS to the device browser's push service. VAPID keys a
 `podman compose up -d --build` works when a Compose provider is installed. You can also run directly:
 
 ```sh
-podman build -t localhost/tomsawyer .
+podman build --format docker -t localhost/tomsawyer .
 podman volume create tomsawyer-data
 podman run -d --name tomsawyer --restart=unless-stopped \
   -p 127.0.0.1:3100:3000 --env-file .env \
