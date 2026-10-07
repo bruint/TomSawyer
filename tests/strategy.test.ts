@@ -79,6 +79,12 @@ test("missed nap replans without a fake sleep log", () => {
     DateTime.fromISO(plan.nextSleep!).setZone(child.timezone).toFormat("HH:mm"),
     "11:00",
   );
+  assert(
+    plan.reasons
+      .find((reason) => reason.code === "late-bedtime")
+      ?.detail.includes("9:45 PM"),
+    "bedtime explanations use the child's timezone even on a UTC server",
+  );
 });
 test("a saved nap count allows a later bedtime after a late wake without dropping naps", () => {
   const plan = buildStrategy(
@@ -346,14 +352,16 @@ test("unavailable nap counts are explained and never mislabel the actual timelin
 
 function history(count: number, days: number, includeNight = true): Activity[] {
   return Array.from({ length: days }, (_, offset) => {
-    const day = DateTime.fromISO(at("07:00")).minus({ days: offset + 1 });
+    const day = DateTime.fromISO(at("07:00"), { setZone: true }).minus({
+      days: offset + 1,
+    });
     const dated = (entry: Activity) => ({
       ...entry,
-      startedAt: DateTime.fromISO(entry.startedAt)
+      startedAt: DateTime.fromISO(entry.startedAt, { setZone: true })
         .minus({ days: offset + 1 })
         .toISO()!,
       endedAt: entry.endedAt
-        ? DateTime.fromISO(entry.endedAt)
+        ? DateTime.fromISO(entry.endedAt, { setZone: true })
             .minus({ days: offset + 1 })
             .toISO()!
         : null,
@@ -367,7 +375,7 @@ function history(count: number, days: number, includeNight = true): Activity[] {
             activity(
               "sleep",
               start,
-              DateTime.fromISO(at(start))
+              DateTime.fromISO(at(start), { setZone: true })
                 .plus({ minutes: 45 })
                 .toFormat("HH:mm"),
             ),

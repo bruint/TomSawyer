@@ -34,7 +34,9 @@ function schedule(
     const retry = context.ageMonths < 4 ? 30 : context.ageMonths < 6 ? 45 : 60;
     cursor = later(
       cursor,
-      DateTime.fromISO(skipped.startedAt).plus({ minutes: retry }),
+      DateTime.fromISO(skipped.startedAt)
+        .setZone(child.timezone)
+        .plus({ minutes: retry }),
     );
   }
   const overdue = !active && !skipped && minutesBetween(now, cursor) > 15;
