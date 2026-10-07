@@ -65,6 +65,8 @@ systemctl --user start tomsawyer.service
 
 Enable user lingering if your service should start without a login. On SELinux hosts, use `:Z` for a dedicated bind-mounted data directory; never relabel or change ownership of another application's storage.
 
+For a private Quadlet installation, restrict the reverse proxy to your LAN, then set `PRIVATE_INSTANCE=true` and leave `SETUP_TOKEN` empty in `~/.config/tomsawyer.env`. The first family can be created without copying a setup key; later caregivers join by invitation. Public instances require a setup key by default.
+
 ### Container images
 
 CI tests and builds the app, then publishes `ghcr.io/bruint/tomsawyer:latest`, commit tags, and version tags for AMD64 and ARM64. Source builds work independently of image publishing. To use a published image:

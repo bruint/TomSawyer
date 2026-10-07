@@ -29,7 +29,15 @@ const sameSecret = (a: string, b: string) =>
 
 export function createAuthRouter(
   db: DB,
-  { setupToken, secure }: { setupToken: string; secure: boolean },
+  {
+    setupToken,
+    secure,
+    privateInstance,
+  }: {
+    setupToken: string;
+    secure: boolean;
+    privateInstance: boolean;
+  },
 ) {
   const router = Router();
   router.get("/status", (_req, res) =>
@@ -53,7 +61,11 @@ export function createAuthRouter(
         403,
         "The setup key does not match. Check your server configuration.",
       );
-    if (process.env.NODE_ENV === "production" && !setupToken)
+    if (
+      process.env.NODE_ENV === "production" &&
+      !setupToken &&
+      !privateInstance
+    )
       fail(
         503,
         "Set SETUP_TOKEN on the server before creating the first account.",

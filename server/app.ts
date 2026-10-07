@@ -20,6 +20,7 @@ export function createApp(
   db: DB,
   options: {
     setupToken?: string;
+    privateInstance?: boolean;
     appUrl?: string;
     staticDir?: string;
     rateLimits?: boolean;
@@ -30,6 +31,8 @@ export function createApp(
     options.appUrl || process.env.APP_URL || "http://localhost:5173";
   const secure = new URL(appUrl).protocol === "https:";
   const setupToken = options.setupToken ?? process.env.SETUP_TOKEN ?? "";
+  const privateInstance =
+    options.privateInstance ?? process.env.PRIVATE_INSTANCE === "true";
   const publicKey = initPush(db);
   app.disable("x-powered-by");
   if (process.env.TRUST_PROXY)
@@ -93,7 +96,10 @@ export function createApp(
         legacyHeaders: false,
       }),
     );
-  app.use("/api", createAuthRouter(db, { setupToken, secure }));
+  app.use(
+    "/api",
+    createAuthRouter(db, { setupToken, secure, privateInstance }),
+  );
   // Every route below this boundary requires a family session.
   app.use("/api", authenticate(db));
   app.use("/api", createAccountRouter(db, secure));

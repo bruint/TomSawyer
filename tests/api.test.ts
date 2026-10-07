@@ -8,6 +8,95 @@ import { defaultSettings } from "../shared/types.js";
 import { parseImport } from "../server/import.js";
 import { quickEntry } from "../src/lib/quick-actions";
 
+test("private setup is explicit, public setup stays protected, and only one family is created", async (t) => {
+  const originalEnvironment = process.env.NODE_ENV;
+  const originalPrivateInstance = process.env.PRIVATE_INSTANCE;
+  process.env.NODE_ENV = "production";
+  t.after(() => {
+    if (originalEnvironment === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalEnvironment;
+    if (originalPrivateInstance === undefined)
+      delete process.env.PRIVATE_INSTANCE;
+    else process.env.PRIVATE_INSTANCE = originalPrivateInstance;
+  });
+  for (const privateInstance of [false, true]) {
+    if (privateInstance) process.env.PRIVATE_INSTANCE = "true";
+    else delete process.env.PRIVATE_INSTANCE;
+    const db = openDatabase(":memory:");
+    const origin = "https://sleep.example.test";
+    const server = createApp(db, {
+      setupToken: "",
+      appUrl: origin,
+      rateLimits: false,
+    }).listen(0, "127.0.0.1");
+    await new Promise<void>((resolve) => server.once("listening", resolve));
+    try {
+      const { port } = server.address() as { port: number };
+      const base = `http://127.0.0.1:${port}/api`;
+      const status = await fetch(`${base}/status`).then((response) =>
+        response.json(),
+      );
+      assert.equal(status.needsSetup, true);
+      assert.equal(status.setupKeyRequired, false);
+      const register = (email: string) =>
+        fetch(`${base}/auth/setup`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-TomSawyer": "1",
+            Origin: origin,
+          },
+          body: JSON.stringify({
+            email,
+            name: "Parent",
+            password: "a secure test passphrase",
+            familyName: "Test family",
+          }),
+        });
+      if (!privateInstance) {
+        assert.equal((await register("public@example.test")).status, 503);
+        assert.equal(
+          db.prepare("SELECT COUNT(*) AS count FROM users").get()!.count,
+          0,
+        );
+        continue;
+      }
+      const responses = await Promise.all([
+        register("parent@example.test"),
+        register("other@example.test"),
+      ]);
+      assert.deepEqual(
+        responses.map((response) => response.status).sort(),
+        [201, 409],
+      );
+      assert.match(
+        responses
+          .find((response) => response.status === 201)!
+          .headers.get("set-cookie")!,
+        /Secure/,
+      );
+      assert.equal(
+        db.prepare("SELECT COUNT(*) AS count FROM families").get()!.count,
+        1,
+      );
+      assert.equal(
+        db.prepare("SELECT COUNT(*) AS count FROM users").get()!.count,
+        1,
+      );
+      assert.equal((await register("later@example.test")).status, 409);
+      const after = await fetch(`${base}/status`).then((response) =>
+        response.json(),
+      );
+      assert.equal(after.needsSetup, false);
+      assert.equal((await fetch(`${base}/bootstrap`)).status, 401);
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      db.close();
+    }
+  }
+});
+
 test("family, tracking, timer concurrency, import and authorization workflows", async (t) => {
   const db = openDatabase(":memory:");
   const app = createApp(db, {
