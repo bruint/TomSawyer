@@ -33,28 +33,30 @@ export function useChildData({
 }: ChildDataOptions) {
   const [events, setEvents] = useState<Activity[]>([]);
   const [strategy, setStrategy] = useState<Strategy | null>(null);
-  const [loadedChildId, setLoadedChildId] = useState("");
+  const [liveStrategy, setLiveStrategy] = useState<Strategy | null>(null);
+  const [loadedScope, setLoadedScope] = useState("");
   const requestGeneration = useRef(0);
   const childId = child?.id;
   const userId = user?.id;
   const userName = user?.name;
   const selectedScope = useRef("");
-  selectedScope.current = `${userId}:${childId}`;
+  selectedScope.current = `${userId}:${childId}:${napCount ?? "live"}`;
 
   const refresh = useCallback(async () => {
     if (!childId || !userId || !userName) return;
-    const scope = `${userId}:${childId}`;
-    // A save for a previously selected child can finish after the user switches.
+    const scope = `${userId}:${childId}:${napCount ?? "live"}`;
+    // A save can finish after the user changes child or nap preview.
     if (scope !== selectedScope.current) return;
     const generation = ++requestGeneration.current;
     const currentUser = { id: userId, name: userName };
     const cacheKey = `ts:cache:${userId}:${childId}`;
     try {
-      const [logs, plan] = await Promise.all([
+      const [logs, livePlan, preview] = await Promise.all([
         api<Activity[]>(`/children/${childId}/activities?days=90`),
-        api<Strategy>(
-          `/children/${childId}/strategy${napCount !== null ? `?naps=${napCount}` : ""}`,
-        ),
+        api<Strategy>(`/children/${childId}/strategy`),
+        napCount === null
+          ? Promise.resolve(null)
+          : api<Strategy>(`/children/${childId}/strategy?naps=${napCount}`),
       ]);
       if (
         generation !== requestGeneration.current ||
@@ -64,11 +66,13 @@ export function useChildData({
       setEvents(
         mergePendingActivities(logs, pendingRef.current, childId, currentUser),
       );
-      setStrategy(plan);
-      setLoadedChildId(childId);
+      setLiveStrategy(livePlan);
+      setStrategy(preview ?? livePlan);
+      setLoadedScope(scope);
       setOnline(true);
-      if (napCount === null)
-        writeStored(cacheKey, { events: logs, strategy: plan });
+      // Previews are temporary. Offline data and logging shortcuts always use
+      // the current live recommendation, even while comparing another count.
+      writeStored(cacheKey, { events: logs, strategy: livePlan });
     } catch (error) {
       if (
         generation !== requestGeneration.current ||
@@ -91,7 +95,8 @@ export function useChildData({
           ),
         );
         setStrategy(cache.strategy);
-        setLoadedChildId(childId);
+        setLiveStrategy(cache.strategy);
+        setLoadedScope(scope);
       }
     }
   }, [
@@ -105,10 +110,11 @@ export function useChildData({
   ]);
 
   useEffect(() => {
-    setLoadedChildId("");
+    setLoadedScope("");
     if (!childId || !userId) {
       setEvents([]);
       setStrategy(null);
+      setLiveStrategy(null);
       return;
     }
     void refresh();
@@ -120,7 +126,7 @@ export function useChildData({
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
-      // A response for a previous child must not replace the current child's data.
+      // Old requests must not replace the current child or nap choice.
       requestGeneration.current++;
     };
   }, [childId, userId, refresh]);
@@ -133,5 +139,12 @@ export function useChildData({
     }
   }
 
-  return { events, strategy, loadedChildId, refresh, showPending };
+  return {
+    events,
+    strategy,
+    liveStrategy,
+    loadedChildId: loadedScope === selectedScope.current ? childId || "" : "",
+    refresh,
+    showPending,
+  };
 }

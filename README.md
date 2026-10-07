@@ -104,6 +104,8 @@ Near the live plan's next sleep time, Sleep chooses nap or night sleep from that
 
 The planner is an inspectable scheduling heuristic. Automatic compares complete schedules across nearby nap counts, using corrected age, today's wake and nap lengths, and the past week's logged routines. History influences the count only after at least three days containing a recorded morning, naps, and night. Each option shows its estimated bedtime; tapping one previews it without saving a setting. Custom wake windows and a saved nap count remain preferences.
 
+Today and Strategy show the same next-sleep target and bedtime. A nap preview stays selected across tabs until you return to the live plan or change child. Logging shortcuts and automatic alerts follow the live recommendation.
+
 Usual bedtime is a starting point. An earlier wake, short naps, a late morning, or a long current nap can move it earlier or later. The last nap can be a full nap or a shorter bridge nap. Counts that would run too far into the night are marked unavailable, rather than silently dropping a nap while displaying the wrong count. Later steps remain tentative, and new logs recalculate the remaining day.
 
 The planner does **not** implement a clinically validated prediction model or an AI sleep consultant. Under two months corrected age it shows responsive-care guidance rather than timed predictions. It does not recommend delaying feeds, calculate medicine doses, diagnose allergies, or derive growth percentiles. Follow your child's cues and your clinician's guidance. All clinical fields record caregiver observations.

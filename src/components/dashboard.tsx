@@ -6,11 +6,12 @@ import type {
   Child,
   Strategy,
 } from "../../shared/types";
-import { duration, time, timeRange } from "../lib/format";
+import { duration, time } from "../lib/format";
 import type { Page } from "../lib/navigation";
 import { ActivityIcon } from "./activity-icon";
 import { EntryList } from "./entry-list";
 import { PageHeader } from "./page-header";
+import { PlanPreviewNotice } from "./plan-preview-notice";
 import { RunningTimers } from "./running-timers";
 
 export function Dashboard({
@@ -23,6 +24,9 @@ export function Dashboard({
   onTimer,
   quickLabel,
   quickBusy,
+  compare,
+  setCompare,
+  online,
 }: {
   child: Child;
   events: Activity[];
@@ -30,6 +34,9 @@ export function Dashboard({
   onLog: (kind: ActivityKind) => void;
   quickLabel: (kind: ActivityKind) => string;
   quickBusy: boolean;
+  compare: number | null;
+  setCompare: (count: number | null) => void;
+  online: boolean;
   onEdit: (a: Activity) => void;
   onNavigate: (page: Page) => void;
   onTimer: (a: Activity, action: "pause" | "resume" | "stop") => void;
@@ -50,24 +57,20 @@ export function Dashboard({
   return (
     <>
       <PageHeader child={child} title={`${child.name}’s day`} />
+      <PlanPreviewNotice
+        compare={compare}
+        strategy={strategy}
+        online={online}
+        onReturnToLive={() => setCompare(null)}
+      />
       {!sleeping && (
         <section className="sleep-overview">
           <div>
-            <span className="sleep-label">
-              {next?.kind === "bedtime" ? "Bedtime" : "Next sleep"}
-            </span>
+            <span className="sleep-label">{next?.title || "Next sleep"}</span>
             <h2>
-              {strategy?.windowStart && strategy.windowEnd
-                ? timeRange(
-                    strategy.windowStart,
-                    strategy.windowEnd,
-                    child.timezone,
-                  )
-                : strategy?.status === "gentle"
-                  ? "Follow sleep cues"
-                  : strategy?.status === "night"
-                    ? "Night sleep"
-                    : "Log a wake or sleep"}
+              {strategy?.nextSleep
+                ? time(strategy.nextSleep, child.timezone)
+                : strategy?.headline || "Log a wake or sleep"}
             </h2>
             {strategy?.windDownAt && (
               <span className="muted">

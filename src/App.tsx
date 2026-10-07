@@ -1,5 +1,5 @@
 import { RefreshCw, WifiOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type {
   Activity,
@@ -48,6 +48,7 @@ export default function App() {
   const { theme, setTheme } = useTheme();
   const queue = useOfflineQueue(bootstrap?.user.id, online);
   const [compare, setCompare] = useState<number | null>(null);
+  useEffect(() => setCompare(null), [child?.id, bootstrap?.user.id]);
   const [log, setLog] = useState<{
     kind: ActivityKind;
     entry?: Activity;
@@ -65,10 +66,7 @@ export default function App() {
   const quickActions = useQuickActions({
     child,
     events: data.loadedChildId === child?.id ? data.events : [],
-    strategy:
-      compare === null && data.loadedChildId === child?.id
-        ? data.strategy
-        : null,
+    strategy: data.loadedChildId === child?.id ? data.liveStrategy : null,
     online,
     onRecord: (input, message) => saveActivity(input, undefined, message),
     onTimer: controlTimer,
@@ -76,7 +74,6 @@ export default function App() {
   });
 
   function navigate(next: Page) {
-    setCompare(null);
     navigation.navigate(next);
   }
   function selectChild(id: string) {
@@ -282,6 +279,9 @@ export default function App() {
                 onTimer={controlTimer}
                 quickLabel={quickActions.label}
                 quickBusy={quickActions.busy}
+                compare={compare}
+                setCompare={setCompare}
+                online={online}
               />
             )}
             {page === "strategy" && (
@@ -292,6 +292,7 @@ export default function App() {
                 quickBusy={quickActions.busy}
                 compare={compare}
                 setCompare={setCompare}
+                online={online}
               />
             )}
             {page === "history" && (

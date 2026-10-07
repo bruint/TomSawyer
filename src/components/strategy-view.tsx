@@ -2,6 +2,7 @@ import { CloudMoon } from "lucide-react";
 import type { ActivityKind, Child, Strategy } from "../../shared/types";
 import { duration, time } from "../lib/format";
 import { PageHeader } from "./page-header";
+import { PlanPreviewNotice } from "./plan-preview-notice";
 import { Button } from "./ui/button";
 
 export function StrategyView({
@@ -11,6 +12,7 @@ export function StrategyView({
   quickBusy,
   compare,
   setCompare,
+  online,
 }: {
   child: Child;
   strategy: Strategy | null;
@@ -18,6 +20,7 @@ export function StrategyView({
   quickBusy: boolean;
   compare: number | null;
   setCompare: (n: number | null) => void;
+  online: boolean;
 }) {
   if (!strategy) return <div className="loading">Loading plan…</div>;
   return (
@@ -37,18 +40,12 @@ export function StrategyView({
         }
       />
       <div className="strategy-content">
-        {compare !== null && (
-          <div className="plan-preview-state">
-            <span>
-              {compare === strategy.plannedNaps
-                ? `Preview: ${compare} ${compare === 1 ? "nap" : "naps"}`
-                : `${compare} naps unavailable today`}
-            </span>
-            <button className="text-button" onClick={() => setCompare(null)}>
-              Return to live plan
-            </button>
-          </div>
-        )}
+        <PlanPreviewNotice
+          compare={compare}
+          strategy={strategy}
+          online={online}
+          onReturnToLive={() => setCompare(null)}
+        />
         <section className="plan-overview">
           <h2>{strategy.headline}</h2>
           <p>{strategy.summary}</p>
