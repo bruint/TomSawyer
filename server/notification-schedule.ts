@@ -58,6 +58,7 @@ function sleepJobs(
     rollForward: false,
   });
   if (
+    !plan.nextSleep ||
     !plan.windDownAt ||
     !plan.windowStart ||
     !plan.windowEnd ||
@@ -80,6 +81,14 @@ function sleepJobs(
   const start = DateTime.fromISO(plan.windowStart).setZone(child.timezone);
   const end = DateTime.fromISO(plan.windowEnd).setZone(child.timezone);
   const window = `${start.toFormat("h:mm a")}–${end.toFormat("h:mm a")}`;
+  const sleep = plan.steps.find(
+    (step) => step.kind === "nap" || step.kind === "bedtime",
+  );
+  if (!sleep) return [];
+  const target = DateTime.fromISO(plan.nextSleep)
+    .setZone(child.timezone)
+    .toFormat("h:mm a");
+  const body = `${sleep.title} around ${target}. Window: ${window}.`;
   const url = `/?child=${child.id}&view=strategy`;
   return [
     {
@@ -87,7 +96,7 @@ function sleepJobs(
       alert: "windDown",
       at: DateTime.fromISO(plan.windDownAt),
       title: `${child.name} · time to wind down`,
-      body: `Suggested sleep window: ${window}.`,
+      body,
       url,
     },
     {
@@ -95,7 +104,7 @@ function sleepJobs(
       alert: "sleepWindow",
       at: start,
       title: `${child.name} · sleep window opens`,
-      body: `Suggested sleep window: ${window}. Open the updated plan.`,
+      body,
       url,
     },
   ];

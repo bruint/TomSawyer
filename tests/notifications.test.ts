@@ -5,6 +5,7 @@ import { createApp } from "../server/app.js";
 import { openDatabase } from "../server/db.js";
 import { notificationJobs } from "../server/notification-schedule.js";
 import { deliverNotifications } from "../server/push.js";
+import { buildStrategy } from "../server/strategy.js";
 import {
   defaultSettings,
   defaultSleepAlerts,
@@ -67,7 +68,7 @@ test("sleep alerts have separate deadlines, use the child's timezone and do not 
   const wind = jobs("09:10");
   assert.equal(wind.length, 1);
   assert.equal(wind[0].alert, "windDown");
-  assert.equal(wind[0].body, "Suggested sleep window: 9:20 AM–9:40 AM.");
+  assert.equal(wind[0].body, "Nap 1 around 9:30 AM. Window: 9:20 AM–9:40 AM.");
   assert.equal(wind[0].url, "/?child=rowan&view=strategy");
   assert.equal(
     jobs("09:15")[0].key,
@@ -78,6 +79,7 @@ test("sleep alerts have separate deadlines, use the child's timezone and do not 
   const window = jobs("09:20");
   assert.equal(window.length, 1);
   assert.equal(window[0].alert, "sleepWindow");
+  assert.equal(window[0].body, wind[0].body);
   assert.notEqual(window[0].key, wind[0].key);
   assert.equal(jobs("09:26").length, 0);
   assert.equal(jobs("10:30").length, 0, "an overdue plan is not a new alert");
@@ -141,17 +143,109 @@ test("automatic count changes recalculate both alerts after a nap without replay
   const firstWind = jobs([wake], "08:40");
   assert.equal(firstWind.length, 1);
   assert.equal(firstWind[0].alert, "windDown");
-  assert.equal(firstWind[0].body, "Suggested sleep window: 8:50 AM–9:10 AM.");
+  assert.equal(
+    firstWind[0].body,
+    "Nap 1 around 9:00 AM. Window: 8:50 AM–9:10 AM.",
+  );
   assert.equal(jobs([wake], "08:50")[0].alert, "sleepWindow");
   assert.equal(jobs([wake], "11:30").length, 0);
   const logs = [wake, entry("sleep", "09:00", "09:20")];
   const nextWind = jobs(logs, "10:25");
   assert.equal(nextWind.length, 1);
   assert.equal(nextWind[0].alert, "windDown");
-  assert.equal(nextWind[0].body, "Suggested sleep window: 10:35 AM–10:55 AM.");
+  assert.equal(
+    nextWind[0].body,
+    "Nap 2 around 10:45 AM. Window: 10:35 AM–10:55 AM.",
+  );
   assert.notEqual(nextWind[0].key, firstWind[0].key);
   assert.equal(jobs(logs, "10:35")[0].alert, "sleepWindow");
   assert.equal(jobs(logs, "12:00").length, 0);
+});
+
+test("nap previews leave both automatic alerts on the live plan's target and deadlines", () => {
+  const automatic: Child = {
+    ...child,
+    birthDate: "2026-06-01",
+    settings: { ...defaultSettings },
+  };
+  const logs = [
+    wake,
+    entry("sleep", "08:30", "08:50"),
+    entry("sleep", "10:35", "10:55"),
+  ];
+  const live = buildStrategy(automatic, logs, now("11:00").toJSDate());
+  assert.equal(live.plannedNaps, 4);
+  const before = JSON.stringify({ automatic, logs });
+  const windTime = DateTime.fromISO(live.windDownAt!);
+  const windowTime = DateTime.fromISO(live.windowStart!);
+  const jobs = (time: DateTime) => notificationJobs(automatic, logs, [], time);
+  const originalWind = jobs(windTime);
+  const preview = buildStrategy(automatic, logs, now("11:00").toJSDate(), {
+    napCount: 3,
+  });
+  assert.notEqual(preview.nextSleep, live.nextSleep);
+  assert.notEqual(preview.windDownAt, live.windDownAt);
+  assert.equal(JSON.stringify({ automatic, logs }), before);
+  assert.deepEqual(jobs(windTime), originalWind);
+  for (const [time, alert, field] of [
+    [windTime, "windDown", "windDownAt"],
+    [windowTime, "sleepWindow", "windowStart"],
+  ] as const) {
+    const current = buildStrategy(automatic, logs, time.toJSDate());
+    const job = jobs(time).find((job) => job.alert === alert)!;
+    assert.equal(job.alert, alert);
+    assert.equal(job.at.toMillis(), Date.parse(current[field]!));
+    assert.equal(current.nextSleep, live.nextSleep);
+    assert.equal(job.body, "Nap 3 around 12:35 PM. Window: 12:25 PM–12:45 PM.");
+    assert.equal(job.url, "/?child=rowan&view=strategy");
+  }
+  assert.equal(jobs(DateTime.fromISO(preview.windDownAt!)).length, 0);
+});
+
+test("both bedtime alerts follow the live flexible bedtime instead of the usual bedtime", () => {
+  const automatic: Child = {
+    ...child,
+    birthDate: "2026-06-01",
+    settings: { ...defaultSettings },
+  };
+  for (const [start, end, check, target, window] of [
+    ["15:00", "16:00", "16:01", "6:30 PM", "6:20 PM–6:40 PM"],
+    ["16:30", "18:00", "18:01", "8:30 PM", "8:20 PM–8:40 PM"],
+  ]) {
+    const logs = [
+      wake,
+      entry("sleep", "09:00", "10:00"),
+      entry("sleep", "12:00", "13:00"),
+      entry("sleep", start, end),
+    ];
+    const live = buildStrategy(automatic, logs, now(check).toJSDate());
+    assert.equal(live.nextSleep, live.bedtime);
+    assert.equal(live.steps[1].kind, "bedtime");
+    assert.equal(
+      DateTime.fromISO(live.bedtime!)
+        .setZone(automatic.timezone)
+        .toFormat("h:mm a"),
+      target,
+    );
+    assert.notEqual(
+      DateTime.fromISO(live.bedtime!)
+        .setZone(automatic.timezone)
+        .toFormat("HH:mm"),
+      automatic.settings.bedtime,
+    );
+    for (const [field, alert] of [
+      ["windDownAt", "windDown"],
+      ["windowStart", "sleepWindow"],
+    ] as const) {
+      const deadline = DateTime.fromISO(live[field]!);
+      const job = notificationJobs(automatic, logs, [], deadline).find(
+        (job) => job.alert === alert,
+      )!;
+      assert.equal(job.alert, alert);
+      assert.equal(job.at.toMillis(), deadline.toMillis());
+      assert.equal(job.body, `Bedtime around ${target}. Window: ${window}.`);
+    }
+  }
 });
 
 test("sleeping, missing wake data and newborns suppress automatic sleep alerts; custom reminders still work", () => {
