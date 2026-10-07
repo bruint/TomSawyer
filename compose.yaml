@@ -1,7 +1,7 @@
 services:
   tomsawyer:
     build: .
-    image: ghcr.io/tomdygo/tomsawyer:latest
+    image: ghcr.io/bruint/tomsawyer:latest
     init: true
     restart: unless-stopped
     ports:

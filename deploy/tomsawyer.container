@@ -4,7 +4,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Container]
-Image=ghcr.io/tomdygo/tomsawyer:latest
+Image=ghcr.io/bruint/tomsawyer:latest
 ContainerName=tomsawyer
 PublishPort=127.0.0.1:3100:3000
 Volume=tomsawyer-data.volume:/data

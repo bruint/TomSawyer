@@ -75,6 +75,30 @@ export interface Activity {
   createdAt: string;
   updatedAt: string;
 }
+export type ActivityInput = Pick<
+  Activity,
+  "id" | "kind" | "startedAt" | "endedAt" | "details" | "notes" | "pausedMs"
+> & {
+  state: "active" | "complete";
+  version?: number;
+};
+export type TimerAction = "pause" | "resume" | "stop";
+
+export interface ServerStatus {
+  needsSetup: boolean;
+  setupKeyRequired: boolean;
+}
+
+export interface ImportPreview {
+  total: number;
+  valid: number;
+  errors: { row: number; message: string }[];
+}
+
+export interface ImportResult {
+  imported: number;
+  duplicates: number;
+}
 export interface User {
   id: string;
   name: string;

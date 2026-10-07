@@ -59,7 +59,7 @@ export function describe(a: Activity) {
     case "activity":
       return `${d.activityType || "Activity"}${a.endedAt ? " · " + duration(elapsedMs(a) / 60000) : d.durationMinutes ? " · " + duration(Number(d.durationMinutes)) : ""}`;
     case "milestone":
-      return String(d.title || "A little first");
+      return String(d.title || "Milestone");
     case "contraction":
       return `${a.endedAt ? Math.round(elapsedMs(a) / 1000) + " seconds" : "Timing"} · ${d.intensity || "Not rated"}`;
     case "wake":

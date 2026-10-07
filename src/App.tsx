@@ -1,436 +1,198 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { RefreshCw, WifiOff } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import {
-  Sun,
-  Moon,
-  Route,
-  CalendarDays,
-  ChartNoAxesCombined,
-  Settings2,
-  ChevronDown,
-  Plus,
-  LogOut,
-  WifiOff,
-  RefreshCw,
-  ArrowRight,
-  Heart,
-  Menu,
-  X,
-  Download,
-  Bell,
-} from "lucide-react";
-import { Button } from "./components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "./components/ui/dropdown-menu";
-import { Boat, RiverScene } from "./components/brand";
-import { AuthScreen } from "./components/auth-screen";
-import { ChildDialog, SettingsView } from "./components/settings";
-import { LogDialog } from "./components/log-dialog";
-import { Dashboard, StrategyView } from "./components/dashboard";
-import { HistoryView, ReportsView } from "./components/reports";
-import { ApiError, api, post, put, remove } from "./lib/api";
-import { age } from "./lib/format";
 import type {
-  Bootstrap,
   Activity,
+  ActivityInput,
   ActivityKind,
-  Strategy,
+  TimerAction,
 } from "../shared/types";
+import { AppShell } from "./components/app-shell";
+import { AuthScreen } from "./components/auth-screen";
+import { Boat } from "./components/brand";
+import { ChildOnboarding } from "./components/child-onboarding";
+import { Dashboard } from "./components/dashboard";
+import { HistoryView } from "./components/history-view";
+import { LogDialog } from "./components/log-dialog";
+import { QuickActionToolbar } from "./components/quick-action-toolbar";
+import { QuickActionSheet } from "./components/quick-action-sheet";
+import { useQuickActions } from "./hooks/use-quick-actions";
+import { ReportsView } from "./components/reports";
+import { SettingsView } from "./components/settings";
+import { ChildDialog } from "./components/settings/child-dialog";
+import { StrategyView } from "./components/strategy-view";
+import { SyncStatus } from "./components/sync-status";
+import { Button } from "./components/ui/button";
+import { useChildData } from "./hooks/use-child-data";
+import { useFamilySession } from "./hooks/use-family-session";
+import { useNavigation } from "./hooks/use-navigation";
+import { useOfflineQueue } from "./hooks/use-offline-queue";
+import { useTheme } from "./hooks/use-theme";
+import { ApiError, post, put, remove } from "./lib/api";
+import type { Page } from "./lib/navigation";
 
-const nav = [
-  { id: "today", label: "Today", icon: Sun },
-  { id: "strategy", label: "Your strategy", icon: Route },
-  { id: "history", label: "Journal", icon: CalendarDays },
-  { id: "reports", label: "Patterns", icon: ChartNoAxesCombined },
-  { id: "settings", label: "Your family", icon: Settings2 },
-];
-type Pending = { userId: string; childId: string; body: any };
-function stored<T>(key: string, fallback: T): T {
-  try {
-    return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-function saveLocal(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {}
-}
 export default function App() {
-  const [bootstrap, setBootstrap] = useState<Bootstrap | null>(null);
-  const [initializing, setInitializing] = useState(true);
-  const [status, setStatus] = useState({
-    needsSetup: false,
-    setupKeyRequired: false,
-  });
-  const [failure, setFailure] = useState("");
-  const params = new URLSearchParams(location.search);
-  const [childId, setChildId] = useState(
-    params.get("child") || localStorage.getItem("ts:child") || "",
-  );
-  const [page, setPage] = useState(
-    nav.some((n) => n.id === params.get("view"))
-      ? params.get("view")!
-      : "today",
-  );
-  const [events, setEvents] = useState<Activity[]>([]);
-  const [strategy, setStrategy] = useState<Strategy | null>(null);
-  const [dataFor, setDataFor] = useState("");
+  const session = useFamilySession();
+  const { bootstrap, online, refresh, setOnline } = session;
+  const navigation = useNavigation(bootstrap?.children || []);
+  const { child, page } = navigation;
+  const { theme, setTheme } = useTheme();
+  const queue = useOfflineQueue(bootstrap?.user.id, online);
   const [compare, setCompare] = useState<number | null>(null);
   const [log, setLog] = useState<{
     kind: ActivityKind;
     entry?: Activity;
   } | null>(null);
   const [childDialog, setChildDialog] = useState<"new" | "edit" | null>(null);
-  const [online, setOnline] = useState(navigator.onLine);
-  const [queue, setQueue] = useState<Pending[]>(stored("ts:queue", []));
-  const syncing = useRef(false);
-  const queueRef = useRef(queue);
-  const bootstrapRef = useRef(bootstrap);
-  const requestGeneration = useRef(0);
-  const [theme, setTheme] = useState(
-    localStorage.getItem("ts:theme") || "system",
-  );
-  const [mobileMenu, setMobileMenu] = useState(false);
-  const [, tick] = useState(0);
-  const child =
-    bootstrap?.children.find((c) => c.id === childId) || bootstrap?.children[0];
-  useEffect(() => {
-    bootstrapRef.current = bootstrap;
-  }, [bootstrap]);
-  useEffect(() => {
-    queueRef.current = queue;
-    saveLocal("ts:queue", queue);
-  }, [queue]);
-  useEffect(() => {
-    const media = matchMedia("(prefers-color-scheme: dark)");
-    const update = () =>
-      document.documentElement.classList.toggle(
-        "dark",
-        theme === "dark" || (theme === "system" && media.matches),
-      );
-    update();
-    localStorage.setItem("ts:theme", theme);
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, [theme]);
-  const refresh = useCallback(async () => {
-    try {
-      const data = await api<Bootstrap>("/bootstrap");
-      setBootstrap(data);
-      saveLocal("ts:bootstrap", data);
-      setFailure("");
-      setOnline(true);
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        setBootstrap(null);
-        setStatus(await api("/status"));
-        localStorage.removeItem("ts:bootstrap");
-      } else {
-        const cached = stored<Bootstrap | null>("ts:bootstrap", null);
-        if (cached) {
-          setBootstrap(cached);
-          setOnline(false);
-        } else
-          setFailure(
-            "We couldn’t reach your server. Check your connection and try again.",
-          );
-      }
-    } finally {
-      setInitializing(false);
-    }
-  }, []);
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-  useEffect(() => {
-    if (child) {
-      setChildId(child.id);
-      localStorage.setItem("ts:child", child.id);
-    }
-  }, [child?.id]);
-  const loadChild = useCallback(async () => {
-    if (!child || !bootstrap) return;
-    const generation = ++requestGeneration.current;
-    const id = child.id;
-    try {
-      const [logs, plan] = await Promise.all([
-        api<Activity[]>(`/children/${id}/activities?days=90`),
-        api<Strategy>(
-          `/children/${id}/strategy${compare !== null ? `?naps=${compare}` : ""}`,
-        ),
-      ]);
-      if (generation !== requestGeneration.current) return;
-      const pending = queueRef.current
-        .filter((q) => q.userId === bootstrap.user.id && q.childId === id)
-        .map(
-          (q) =>
-            ({
-              ...q.body,
-              childId: id,
-              createdBy: bootstrap.user.id,
-              authorName: bootstrap.user.name,
-              version: 1,
-              pausedAt: null,
-              pausedMs: 0,
-              createdAt: q.body.startedAt,
-              updatedAt: q.body.startedAt,
-            }) as Activity,
-        );
-      const unique = [
-        ...logs,
-        ...pending.filter((p) => !logs.some((a) => a.id === p.id)),
-      ].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-      setEvents(unique);
-      setStrategy(plan);
-      setDataFor(id);
-      setOnline(true);
-      if (compare === null)
-        saveLocal(`ts:cache:${bootstrap.user.id}:${id}`, {
-          events: logs,
-          strategy: plan,
-        });
-    } catch (e) {
-      if (generation !== requestGeneration.current) return;
-      if (e instanceof ApiError && e.status === 401) {
-        void refresh();
-        return;
-      }
-      setOnline(false);
-      const cache = stored<any>(`ts:cache:${bootstrap.user.id}:${id}`, null);
-      if (cache) {
-        const pending = queueRef.current
-          .filter((q) => q.userId === bootstrap.user.id && q.childId === id)
-          .map((q) => ({
-            ...q.body,
-            childId: id,
-            createdBy: bootstrap.user.id,
-            authorName: bootstrap.user.name,
-            version: 1,
-            pausedAt: null,
-            pausedMs: 0,
-            createdAt: q.body.startedAt,
-            updatedAt: q.body.startedAt,
-          }));
-        setEvents(
-          [
-            ...cache.events,
-            ...pending.filter(
-              (p) => !cache.events.some((a: Activity) => a.id === p.id),
-            ),
-          ].sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
-        );
-        setStrategy(cache.strategy);
-        setDataFor(id);
-      }
-    }
-  }, [child?.id, bootstrap?.user.id, compare, refresh]);
-  useEffect(() => {
-    setDataFor("");
-    void loadChild();
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") void loadChild();
-    }, 15000);
-    const visible = () => {
-      if (document.visibilityState === "visible") void loadChild();
-    };
-    document.addEventListener("visibilitychange", visible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", visible);
-      requestGeneration.current++;
-    };
-  }, [loadChild]);
-  useEffect(() => {
-    const interval = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
-  useEffect(() => {
-    const online = () => {
-      setOnline(true);
-      void refresh();
-    };
-    const offline = () => setOnline(false);
-    window.addEventListener("online", online);
-    window.addEventListener("offline", offline);
-    return () => {
-      window.removeEventListener("online", online);
-      window.removeEventListener("offline", offline);
-    };
-  }, [refresh]);
-  useEffect(() => {
-    const pop = () => {
-      const p = new URLSearchParams(location.search);
-      setPage(p.get("view") || "today");
-      if (p.get("child")) setChildId(p.get("child")!);
-    };
-    window.addEventListener("popstate", pop);
-    return () => window.removeEventListener("popstate", pop);
-  }, []);
-  const syncQueue = useCallback(async () => {
-    if (syncing.current || !bootstrapRef.current || !navigator.onLine) return;
-    syncing.current = true;
-    try {
-      const uid = bootstrapRef.current.user.id;
-      for (const item of [...queueRef.current].filter(
-        (q) => q.userId === uid,
-      )) {
-        try {
-          await post(`/children/${item.childId}/activities`, item.body);
-          queueRef.current = queueRef.current.filter(
-            (q) => q.body.id !== item.body.id,
-          );
-          setQueue(queueRef.current);
-          saveLocal("ts:queue", queueRef.current);
-        } catch (e) {
-          if (e instanceof ApiError) {
-            toast.error(`An offline entry needs review: ${e.message}`);
-          }
-          break;
-        }
-      }
-    } finally {
-      syncing.current = false;
-    }
-  }, []);
-  useEffect(() => {
-    if (online && bootstrap && queue.length) void syncQueue();
-  }, [online, bootstrap?.user.id, queue.length, syncQueue]);
-  function navigate(next: string) {
-    setPage(next);
-    setMobileMenu(false);
+  const data = useChildData({
+    child,
+    user: bootstrap?.user,
+    napCount: compare,
+    pendingRef: queue.itemsRef,
+    setOnline,
+    refreshSession: refresh,
+  });
+
+  const quickActions = useQuickActions({
+    child,
+    events: data.loadedChildId === child?.id ? data.events : [],
+    online,
+    onRecord: (input, message) => saveActivity(input, undefined, message),
+    onTimer: controlTimer,
+    onDetails: (kind) => setLog({ kind }),
+  });
+
+  function navigate(next: Page) {
     setCompare(null);
-    const p = new URLSearchParams();
-    if (child) p.set("child", child.id);
-    if (next !== "today") p.set("view", next);
-    history.pushState(null, "", `/?${p}`);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    navigation.navigate(next);
   }
-  async function onSaved() {
+  function selectChild(id: string) {
+    setCompare(null);
+    setLog(null);
+    quickActions.setSheet(null);
+    navigation.selectChild(id);
+  }
+  async function refreshFamily() {
     await refresh();
-    await loadChild();
+    await data.refresh();
   }
-  async function saveActivity(body: any, id?: string) {
+  async function saveActivity(
+    body: ActivityInput,
+    id?: string,
+    quickMessage?: string,
+  ) {
     if (!child || !bootstrap) return;
     try {
+      let created: Activity | undefined;
       if (id) await put(`/activities/${id}`, body);
-      else await post(`/children/${child.id}/activities`, body);
-      toast.success(
-        id
-          ? "Entry updated for your family."
-          : body.state === "active"
-            ? "Timer started. Your family can see it too."
-            : "A little moment, remembered.",
-      );
-      await loadChild();
-    } catch (e) {
-      if (!id && body.state === "complete" && !(e instanceof ApiError)) {
-        const item = { userId: bootstrap.user.id, childId: child.id, body };
-        queueRef.current = [...queueRef.current, item];
-        setQueue(queueRef.current);
-        saveLocal("ts:queue", queueRef.current);
-        setOnline(false);
-        setEvents((old) => [
-          {
-            ...body,
-            childId: child.id,
-            authorName: bootstrap.user.name,
-            createdBy: bootstrap.user.id,
-            version: 1,
-            pausedAt: null,
-            pausedMs: 0,
-            createdAt: body.startedAt,
-            updatedAt: body.startedAt,
-          },
-          ...old,
-        ]);
-        toast.success(
-          "Saved on this device. We’ll sync it when the connection returns.",
+      else
+        created = await post<Activity>(
+          `/children/${child.id}/activities`,
+          body,
         );
-      } else throw e;
-    }
-  }
-  async function timer(a: Activity, action: "pause" | "resume" | "stop") {
-    try {
-      await post(`/activities/${a.id}/timer`, { action, version: a.version });
-      await loadChild();
       toast.success(
-        action === "stop"
-          ? "Session saved. Your plan is up to date."
-          : action === "pause"
-            ? "Timer paused"
-            : "Timer resumed",
+        quickMessage ||
+          (id
+            ? "Entry updated"
+            : body.state === "active"
+              ? "Timer started"
+              : "Entry saved"),
+        quickMessage && created
+          ? {
+              duration: 7000,
+              action: {
+                label: "Undo",
+                onClick: () => void undoQuickEntry(created!),
+              },
+            }
+          : undefined,
       );
-    } catch (e) {
-      toast.error((e as Error).message);
-      await loadChild();
+      await data.refresh();
+    } catch (error) {
+      if (id || body.state !== "complete" || error instanceof ApiError) {
+        await data.refresh();
+        throw error;
+      }
+      queue.enqueue({ userId: bootstrap.user.id, childId: child.id, body });
+      setOnline(false);
+      data.showPending();
+      toast.success("Saved on this device. It will sync when you reconnect.");
     }
   }
-  function edit(a: Activity) {
-    if (queue.some((q) => q.body.id === a.id)) {
+  async function undoQuickEntry(activity: Activity) {
+    try {
+      await deleteActivity(activity);
+    } catch (error) {
+      toast.error((error as Error).message);
+      await data.refresh();
+    }
+  }
+  async function controlTimer(activity: Activity, action: TimerAction) {
+    try {
+      await post(`/activities/${activity.id}/timer`, {
+        action,
+        version: activity.version,
+      });
+      toast.success(
+        {
+          stop: "Session saved",
+          pause: "Timer paused",
+          resume: "Timer resumed",
+        }[action],
+      );
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+    await data.refresh();
+  }
+  function editActivity(activity: Activity) {
+    if (queue.pending.some((item) => item.body.id === activity.id)) {
       toast.info(
         "This entry is waiting to sync. Connect to the server before editing.",
       );
       return;
     }
-    if (a.state !== "complete") {
+    if (activity.state !== "complete") {
       navigate("today");
       toast.info("Use the running timer to pause or finish this session.");
       return;
     }
-    setLog({ kind: a.kind, entry: a });
+    setLog({ kind: activity.kind, entry: activity });
   }
-  async function logout() {
-    if (queue.some((q) => q.userId === bootstrap?.user.id)) {
+  async function deleteActivity(activity: Activity) {
+    await remove(`/activities/${activity.id}`, { version: activity.version });
+    await data.refresh();
+    toast.success("Entry deleted");
+  }
+  async function signOut() {
+    if (queue.pending.length) {
       toast.error(
         "Sync or download and discard your pending entries before signing out.",
       );
       return;
     }
-    try {
-      let endpoint: string | undefined;
-      let sub: PushSubscription | null = null;
-      if ("serviceWorker" in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        sub = (await reg?.pushManager?.getSubscription()) || null;
-        endpoint = sub?.endpoint;
-      }
-      await post("/auth/logout", { endpoint });
-      await sub?.unsubscribe().catch(() => {});
-      for (const key of Object.keys(localStorage))
-        if (key.startsWith("ts:") && key !== "ts:theme")
-          localStorage.removeItem(key);
-      setBootstrap(null);
-      setEvents([]);
-      setStrategy(null);
-      setDataFor("");
-      setQueue([]);
-      setStatus(await api("/status"));
-    } catch (e) {
-      toast.error((e as Error).message);
+    if (await session.signOut()) {
+      queue.clear();
+      setLog(null);
+      setChildDialog(null);
     }
   }
-  const pending = queue.filter((q) => q.userId === bootstrap?.user.id);
-  if (initializing)
+
+  if (session.initializing)
     return (
       <div className="app-loading">
         <Boat size={47} />
-        <h2>A little moment…</h2>
+        <h2>Loading…</h2>
         <div className="loading-line" />
       </div>
     );
-  if (!bootstrap && failure)
+  if (!bootstrap && session.failure)
     return (
       <div className="app-loading">
         <WifiOff size={32} />
-        <h2>Let’s reconnect.</h2>
-        <p>{failure}</p>
-        <Button onClick={() => refresh()}>
+        <h2>Server unavailable</h2>
+        <p>{session.failure}</p>
+        <Button onClick={refresh}>
           <RefreshCw />
           Try again
         </Button>
@@ -439,359 +201,113 @@ export default function App() {
   if (!bootstrap)
     return (
       <AuthScreen
-        needsSetup={status.needsSetup}
-        keyRequired={status.setupKeyRequired}
-        invite={params.get("invite")}
+        needsSetup={session.status.needsSetup}
+        keyRequired={session.status.setupKeyRequired}
+        invite={new URLSearchParams(location.search).get("invite")}
         onSuccess={refresh}
       />
     );
+
   return (
-    <div className="app-shell">
-      <aside className={`sidebar ${mobileMenu ? "open" : ""}`}>
-        <button className="brand" onClick={() => navigate("today")}>
-          <Boat />
-          <span>
-            TomSawyer<span className="brand-dot">.</span>
-          </span>
-        </button>
-        <div className="sidebar-kicker">A LITTLE MORE REST</div>
-        <nav aria-label="Main navigation">
-          {nav.map((n) => (
-            <button
-              key={n.id}
-              className={page === n.id ? "active" : ""}
-              aria-current={page === n.id ? "page" : undefined}
-              onClick={() => navigate(n.id)}
-            >
-              <n.icon size={20} />
-              <span>{n.label}</span>
-              {n.id === "strategy" && <span className="nav-sparkle">✧</span>}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="sidebar-note">
-            <Boat size={28} />
-            <p>
-              Some days follow a plan.
-              <br />
-              Some days need a new one.
-            </p>
-            <small>We’re here for both.</small>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="sidebar-user">
-                <span className="member-avatar">
-                  {bootstrap.user.name.charAt(0)}
-                </span>
-                <span>
-                  <strong>{bootstrap.user.name}</strong>
-                  <small>{bootstrap.family.name}</small>
-                </span>
-                <ChevronDown size={14} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onSelect={() => navigate("settings")}>
-                <Settings2 size={16} />
-                Family settings
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                <Moon size={16} />
-                Toggle night mode
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void logout()}>
-                <LogOut size={16} />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </aside>
-      {mobileMenu && (
-        <button
-          className="sidebar-scrim"
-          aria-label="Close menu"
-          onClick={() => setMobileMenu(false)}
+    <>
+      <AppShell
+        bootstrap={bootstrap}
+        child={child}
+        page={page}
+        online={online}
+        theme={theme}
+        onTheme={setTheme}
+        onNavigate={navigate}
+        onSelectChild={selectChild}
+        onAddChild={() => setChildDialog("new")}
+        onLogout={signOut}
+        quickActions={
+          child && data.loadedChildId === child.id ? (
+            <QuickActionToolbar actions={quickActions} />
+          ) : undefined
+        }
+      >
+        <SyncStatus
+          online={online}
+          pending={queue.pending}
+          onRetry={() => {
+            void refreshFamily();
+          }}
+          onSync={async () => {
+            await queue.sync();
+            await data.refresh();
+          }}
+          onDiscard={queue.discard}
         />
-      )}
-      <div className="workspace">
-        <header className="topbar">
-          <button
-            className="mobile-menu-toggle"
-            onClick={() => setMobileMenu(!mobileMenu)}
-            aria-label="Open menu"
-          >
-            {mobileMenu ? <X /> : <Menu />}
-          </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="child-switcher">
-                <span className={`child-avatar ${child?.color || "sage"}`}>
-                  {child?.name.charAt(0) || "+"}
-                </span>
-                <span>
-                  <strong>{child?.name || "Your little ones"}</strong>
-                  <small>{child ? age(child) : "A new chapter"}</small>
-                </span>
-                <ChevronDown size={16} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {bootstrap.children.map((c) => (
-                <DropdownMenuItem
-                  key={c.id}
-                  onSelect={() => {
-                    setChildId(c.id);
-                    setCompare(null);
-                    setDataFor("");
-                    setLog(null);
-                  }}
-                >
-                  <span className={`child-avatar small ${c.color}`}>
-                    {c.name.charAt(0)}
-                  </span>
-                  {c.name}
-                </DropdownMenuItem>
-              ))}
-              {bootstrap.user.role === "owner" && (
-                <DropdownMenuItem onSelect={() => setChildDialog("new")}>
-                  <Plus size={17} />
-                  Add a child
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div className="topbar-right">
-            <span className="sync-label">
-              <span className={`status-dot ${online ? "" : "off"}`} />
-              {online ? "Together, up to date" : "Saved on this device"}
-            </span>
-            <div
-              className="crew-avatars"
-              title={bootstrap.members.map((m) => m.name).join(", ")}
-            >
-              {bootstrap.members.slice(0, 3).map((m) => (
-                <span key={m.id}>{m.name.charAt(0)}</span>
-              ))}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Family and notification settings"
-              onClick={() => navigate("settings")}
-            >
-              <Bell />
-            </Button>
+        {!child ? (
+          <ChildOnboarding
+            owner={bootstrap.user.role === "owner"}
+            onAddChild={() => setChildDialog("new")}
+          />
+        ) : data.loadedChildId !== child.id ? (
+          <div className="app-loading inline">
+            <Boat />
+            <p>
+              {online
+                ? "Loading…"
+                : "No saved data for this child. Reconnect to your server."}
+            </p>
+            {!online && <Button onClick={data.refresh}>Try again</Button>}
           </div>
-        </header>
-        <main className="main-content">
-          {!online && (
-            <div className="connection-banner">
-              <WifiOff size={17} />
-              <span>
-                You’re offline. Showing saved information; the sleep plan may be
-                out of date. Completed entries can be queued.
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  void refresh();
-                  void loadChild();
-                }}
-              >
-                Retry
-              </Button>
-            </div>
-          )}
-          {pending.length > 0 && (
-            <div className="pending-banner">
-              <strong>
-                {pending.length} {pending.length === 1 ? "entry" : "entries"}{" "}
-                waiting to sync
-              </strong>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  await syncQueue();
-                  await loadChild();
-                }}
-              >
-                Retry sync
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  const blob = new Blob(
-                    [
-                      JSON.stringify(
-                        { activities: pending.map((q) => q.body) },
-                        null,
-                        2,
-                      ),
-                    ],
-                    { type: "application/json" },
-                  );
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "tomsawyer-unsynced.json";
-                  a.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 1000);
-                }}
-              >
-                <Download />
-                Download
-              </Button>
-              <button
-                className="text-button danger-text"
-                onClick={() => {
-                  if (
-                    confirm(
-                      "Discard these unsynced entries from this device? Download a copy first.",
-                    )
-                  )
-                    setQueue(
-                      queue.filter((q) => q.userId !== bootstrap.user.id),
-                    );
-                }}
-              >
-                Discard
-              </button>
-            </div>
-          )}
-          {!child ? (
-            <section className="onboarding-card">
-              <Boat size={48} />
-              <span className="eyebrow">
-                WELCOME ABOARD, {bootstrap.user.name.toUpperCase()}
-              </span>
-              <h1>
-                Every little adventure
-                <br />
-                starts somewhere.
-              </h1>
-              <p>
-                Add your child to start remembering the little moments—and
-                finding a rhythm for the rest of the day.
-              </p>
-              {bootstrap.user.role === "owner" ? (
-                <Button size="lg" onClick={() => setChildDialog("new")}>
-                  Add your little one
-                  <ArrowRight />
-                </Button>
-              ) : (
-                <p>Your family owner can add the first child profile.</p>
-              )}
-              <RiverScene />
-              <div className="onboarding-steps">
-                <span>01 · Meet your little one</span>
-                <span>02 · Log a moment</span>
-                <span>03 · Find your rhythm</span>
-              </div>
-            </section>
-          ) : dataFor !== child.id ? (
-            <div className="app-loading inline">
-              <Boat />
-              <p>
-                {online
-                  ? "Gathering the little details…"
-                  : "No saved data for this child yet. Reconnect to your server."}
-              </p>
-              {!online && (
-                <Button onClick={() => loadChild()}>Try again</Button>
-              )}
-            </div>
-          ) : (
-            <>
-              {page === "today" && (
-                <Dashboard
-                  child={child}
-                  events={events}
-                  strategy={strategy}
-                  onLog={(kind) => setLog({ kind })}
-                  onEdit={edit}
-                  onNavigate={navigate}
-                  onTimer={timer}
-                />
-              )}
-              {page === "strategy" && (
-                <StrategyView
-                  child={child}
-                  strategy={strategy}
-                  onLog={(kind) => setLog({ kind })}
-                  compare={compare}
-                  setCompare={setCompare}
-                />
-              )}
-              {page === "history" && (
-                <HistoryView
-                  child={child}
-                  events={events}
-                  onEdit={edit}
-                  onLog={() => setLog({ kind: "sleep" })}
-                />
-              )}
-              {page === "reports" && (
-                <ReportsView child={child} events={events} />
-              )}
-              {page === "settings" && (
-                <SettingsView
-                  key={child.id}
-                  child={child}
-                  bootstrap={bootstrap}
-                  onRefresh={onSaved}
-                  onEditChild={() => setChildDialog("edit")}
-                  onAddChild={() => setChildDialog("new")}
-                  theme={theme}
-                  onTheme={setTheme}
-                />
-              )}
-            </>
-          )}
-        </main>
-        <footer className="app-footer">
-          <span>
-            <Heart size={12} />
-            For your very own little crew.
-          </span>
-          <span>TomSawyer · Self-hosted & yours</span>
-        </footer>
-      </div>
-      <nav className="mobile-nav" aria-label="Mobile navigation">
-        {nav.map((n) => (
-          <button
-            key={n.id}
-            className={page === n.id ? "active" : ""}
-            onClick={() => navigate(n.id)}
-            aria-current={page === n.id ? "page" : undefined}
-          >
-            <n.icon size={21} />
-            <span>
-              {n.id === "strategy"
-                ? "Strategy"
-                : n.id === "settings"
-                  ? "Family"
-                  : n.label}
-            </span>
-          </button>
-        ))}
-      </nav>
-      {child && page !== "settings" && !log && (
-        <button
-          className="mobile-log-fab"
-          aria-label="Log a moment"
-          onClick={() => setLog({ kind: "sleep" })}
-        >
-          <Plus size={22} />
-          <span>Log</span>
-        </button>
+        ) : (
+          <>
+            {page === "today" && (
+              <Dashboard
+                child={child}
+                events={data.events}
+                strategy={data.strategy}
+                onLog={quickActions.activate}
+                onEdit={editActivity}
+                onNavigate={navigate}
+                onTimer={controlTimer}
+                quickLabel={quickActions.label}
+                quickBusy={quickActions.busy}
+                onMore={() => quickActions.setSheet("more")}
+              />
+            )}
+            {page === "strategy" && (
+              <StrategyView
+                child={child}
+                strategy={data.strategy}
+                onLog={quickActions.activate}
+                quickBusy={quickActions.busy}
+                compare={compare}
+                setCompare={setCompare}
+              />
+            )}
+            {page === "history" && (
+              <HistoryView
+                child={child}
+                events={data.events}
+                onEdit={editActivity}
+                onLog={() => setLog({ kind: "sleep" })}
+              />
+            )}
+            {page === "reports" && (
+              <ReportsView child={child} events={data.events} />
+            )}
+            {page === "settings" && (
+              <SettingsView
+                key={child.id}
+                child={child}
+                bootstrap={bootstrap}
+                onRefresh={refreshFamily}
+                onEditChild={() => setChildDialog("edit")}
+                onAddChild={() => setChildDialog("new")}
+                theme={theme}
+                onTheme={setTheme}
+              />
+            )}
+          </>
+        )}
+      </AppShell>
+      {child && data.loadedChildId === child.id && (
+        <QuickActionSheet key={child.id} child={child} actions={quickActions} />
       )}
       {log && child && (
         <LogDialog
@@ -801,20 +317,16 @@ export default function App() {
           entry={log.entry}
           onClose={() => setLog(null)}
           onSave={saveActivity}
-          onDelete={async (a) => {
-            await remove(`/activities/${a.id}`, { version: a.version });
-            await loadChild();
-            toast.success("Entry deleted");
-          }}
+          onDelete={deleteActivity}
         />
       )}
       {childDialog && (
         <ChildDialog
           child={childDialog === "edit" ? child : undefined}
           onClose={() => setChildDialog(null)}
-          onSaved={onSaved}
+          onSaved={refreshFamily}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -1,0 +1,213 @@
+.settings-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 27px;
+  overflow-x: auto;
+}
+.settings-tabs button {
+  padding: 0 2px 13px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.settings-tabs button.selected {
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 700;
+}
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 23px;
+}
+.settings-grid > .card + .card {
+  margin-top: 0;
+}
+.settings-grid .card > .form-stack {
+  margin-top: 22px;
+}
+.settings-grid p.muted {
+  margin-bottom: 17px;
+}
+.tracker-toggles {
+  margin: 18px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 25px;
+}
+.tracker-toggles > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+}
+.tracker-toggles .activity-symbol {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.tracker-toggles .switch {
+  margin-left: auto;
+}
+.appearance-card h2 {
+  margin-bottom: 15px;
+}
+.family-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 19px 0;
+  border-bottom: 1px solid var(--border);
+}
+.family-row > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.family-row strong {
+  display: block;
+  font-size: 12px;
+}
+.family-row small {
+  color: var(--muted);
+  display: block;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.family-row:last-of-type {
+  margin-bottom: 20px;
+}
+.invite-result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+}
+.invite-result input {
+  flex: 1;
+}
+.invite-result small {
+  width: 100%;
+  color: var(--muted);
+}
+.notification-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0 20px;
+  font-size: 11px;
+}
+.install-card > svg {
+  color: var(--primary);
+  margin-bottom: 15px;
+}
+.install-card p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.9;
+  margin: 8px 0 17px;
+}
+.install-card h3 {
+  margin-top: 21px;
+  font-size: 12px;
+}
+.install-card small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.8;
+}
+.reminder-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--border);
+}
+.reminder-main {
+  text-align: left;
+  flex: 1;
+}
+.reminder-main strong {
+  display: block;
+  font-size: 12px;
+}
+.reminder-main span,
+.reminder-main small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.weekday-picker {
+  display: flex;
+  gap: 9px;
+}
+.weekday-picker button {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 11px;
+}
+.weekday-picker button.selected {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.checkbox-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 11px;
+}
+.checkbox-row input {
+  accent-color: var(--primary);
+}
+.file-drop {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 23px;
+  cursor: pointer;
+  text-align: center;
+}
+.file-drop > svg {
+  color: var(--primary);
+}
+.file-drop strong {
+  font-size: 12px;
+}
+.file-drop span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.file-drop input {
+  font-size: 10px;
+  max-width: 100%;
+  margin-top: 8px;
+}
+.import-preview {
+  margin-top: 20px;
+  font-size: 11px;
+}
+.import-preview > p {
+  color: var(--muted);
+  margin: 9px 0 15px;
+}
+.danger-card {
+  margin-top: 20px;
+  border-color: #cb938e55;
+}
+.danger-card > p {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 10px 0 20px;
+}
+.danger-card button {
+  margin-top: 16px;
+}

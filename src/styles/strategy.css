@@ -1,0 +1,208 @@
+.strategy-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(255px, 1fr);
+  gap: 23px;
+  align-items: start;
+}
+.strategy-intro {
+  background: var(--hero);
+  border-color: transparent;
+  padding: 28px;
+}
+.strategy-intro h2 {
+  font-family: "Fraunces Variable", Georgia, serif;
+  font-size: 29px;
+  font-weight: 450;
+  margin: 20px 0 12px;
+}
+.strategy-intro > p {
+  color: var(--hero-text);
+  font-size: 12px;
+}
+.strategy-numbers {
+  display: flex;
+  gap: 30px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #84937b38;
+}
+.strategy-numbers > div {
+  flex: 1;
+}
+.strategy-numbers small {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+}
+.strategy-numbers strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 18px;
+  font-family: "Fraunces Variable", Georgia, serif;
+  font-weight: 500;
+}
+.full-plan .section-heading > span {
+  font-size: 10px;
+}
+.plan-timeline {
+  margin: 26px 0;
+}
+.plan-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 28px;
+}
+.plan-step:last-child {
+  padding-bottom: 0;
+}
+.plan-time {
+  width: 77px;
+  flex-shrink: 0;
+  padding-top: 7px;
+}
+.plan-time strong {
+  display: block;
+  font-size: 11px;
+}
+.plan-time small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+}
+.plan-node {
+  width: 37px;
+  height: 37px;
+  border-radius: 50%;
+  background: var(--sage);
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex-shrink: 0;
+}
+.plan-step:not(:last-child) .plan-node:after {
+  content: "";
+  position: absolute;
+  top: 43px;
+  height: 58px;
+  width: 1px;
+  background: var(--border);
+}
+.bedtime-step .plan-node {
+  background: var(--lavender);
+  color: #8b80a5;
+}
+.plan-detail {
+  padding-top: 5px;
+}
+.plan-detail > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.plan-detail h3 {
+  font-size: 13px;
+}
+.plan-detail p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+  margin-top: 8px;
+}
+.contingencies > div {
+  padding-top: 20px;
+}
+.contingencies h3 {
+  font-size: 12px;
+}
+.contingencies p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.9;
+  margin-top: 6px;
+}
+.reasons-card > .eyebrow {
+  font-size: 8px;
+}
+.reasons-card > h2 {
+  font-family: "Fraunces Variable", Georgia, serif;
+  font-size: 23px;
+  font-weight: 450;
+  margin: 9px 0 22px;
+}
+.reason {
+  display: flex;
+  gap: 10px;
+  margin-top: 19px;
+}
+.reason > span {
+  width: 21px;
+  height: 21px;
+  background: var(--sage);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.reason h3 {
+  font-size: 11px;
+}
+.reason p,
+.compare-card p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.85;
+  margin-top: 6px;
+}
+.nap-options {
+  display: flex;
+  gap: 8px;
+  margin: 15px 0;
+}
+.nap-options button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 10px;
+}
+.nap-options button.selected {
+  background: var(--sage);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.plan-caveat {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+  padding: 16px 4px 0;
+}
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 55px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+.empty-state > svg {
+  color: #9da992;
+}
+.empty-state h3 {
+  font-size: 16px;
+  color: var(--foreground);
+}
+.empty-state p {
+  font-size: 12px;
+  max-width: 330px;
+}
+.empty-state.compact {
+  padding: 30px 15px;
+}
+.empty-state.compact h3 {
+  font-size: 14px;
+}

@@ -6,7 +6,7 @@ export class ApiError extends Error {
     super(message);
   }
 }
-export async function api<T = any>(
+export async function api<T = unknown>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
@@ -25,9 +25,9 @@ export async function api<T = any>(
     throw new ApiError(data.error || "Request failed", response.status);
   return data as T;
 }
-export const post = <T = any>(path: string, body: unknown) =>
+export const post = <T = unknown>(path: string, body: unknown) =>
   api<T>(path, { method: "POST", body: JSON.stringify(body) });
-export const put = <T = any>(path: string, body: unknown) =>
+export const put = <T = unknown>(path: string, body: unknown) =>
   api<T>(path, { method: "PUT", body: JSON.stringify(body) });
 export const remove = (path: string, body: unknown = {}) =>
   api(path, { method: "DELETE", body: JSON.stringify(body) });

@@ -1,11 +1,11 @@
+import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { ArrowRight, Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { post } from "../lib/api";
 import { Boat, RiverScene } from "./brand";
 import { Button } from "./ui/button";
+import { Field } from "./ui/field";
 import { Input } from "./ui/input";
-import { Field } from "./log-dialog";
-import { post } from "../lib/api";
 
 export function AuthScreen({
   needsSetup,
@@ -51,51 +51,23 @@ export function AuthScreen({
           </span>
         </a>
         <div className="auth-copy">
-          <span className="eyebrow">LITTLE DAYS. BIG ADVENTURES.</span>
           <h1>
             A little more rest.
             <br />
             <em>A plan for the rest.</em>
           </h1>
-          <p>
-            For the naps that end early. The mornings that start late. And all
-            the lovely, messy moments in between.
-          </p>
-          <div className="auth-benefits">
-            {[
-              "A sleep strategy that moves with your day",
-              "Every caregiver on the same page",
-              "Your family’s data, on your own server",
-            ].map((t) => (
-              <div key={t}>
-                <Check size={16} />
-                {t}
-              </div>
-            ))}
-          </div>
         </div>
         <RiverScene />
-        <span className="auth-footer">Made for your family. Owned by you.</span>
       </div>
       <div className="auth-form-side">
         <div className="auth-form">
-          <span className="eyebrow">
-            WELCOME {creating ? "ABOARD" : "BACK"}
-          </span>
           <h2>
             {setup
-              ? "Your family starts here."
+              ? "Create your family"
               : join
-                ? "A place in the crew."
-                : "Good to see you."}
+                ? "Join your family"
+                : "Sign in"}
           </h2>
-          <p className="muted">
-            {setup
-              ? "Set up your private little corner of the world."
-              : join
-                ? "Create your own account to share the little moments."
-                : "Sign in and pick up where your day left off."}
-          </p>
           <form onSubmit={submit} className="form-stack">
             {creating && (
               <Field label="Your name">
@@ -129,11 +101,7 @@ export function AuthScreen({
             </Field>
             <Field
               label="Password"
-              hint={
-                creating
-                  ? "At least 12 characters. A few memorable words work well."
-                  : undefined
-              }
+              hint={creating ? "At least 12 characters." : undefined}
             >
               <div className="password-field">
                 <Input
@@ -203,15 +171,10 @@ export function AuthScreen({
           )}
           {forgot && (
             <p className="notice">
-              Ask the server owner to run the password reset command in the
-              installation guide. No email service or third-party account is
-              required.
+              Ask the server owner to reset your password using the installation
+              guide.
             </p>
           )}
-          <p className="auth-privacy">
-            <span className="status-dot" />
-            Self-hosted. No subscriptions. No trackers.
-          </p>
         </div>
       </div>
     </div>

@@ -1,54 +1,24 @@
-import { useState } from "react";
+import { Loader2, Play, Save, Trash2 } from "lucide-react";
 import { DateTime } from "luxon";
+import { useState } from "react";
 import { toast } from "sonner";
-import { Play, Save, Trash2, Camera, Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { ActivityIcon } from "./activity-icon";
 import {
   activityKinds,
   kindLabels,
+  type Activity,
+  type ActivityInput,
   type ActivityKind,
   type Child,
-  type Activity,
   type Details,
 } from "../../shared/types";
 import { post } from "../lib/api";
+import { ActivityFields } from "./activity-fields";
+import { ActivityIcon } from "./activity-icon";
+import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Field, Select } from "./ui/field";
+import { Input } from "./ui/input";
 
-export function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      {children}
-      {hint && <small>{hint}</small>}
-    </label>
-  );
-}
-export function Select({
-  children,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select className="input" {...props}>
-      {children}
-    </select>
-  );
-}
 const timed = ["sleep", "nursing", "pumping", "activity", "contraction"];
 
 export function LogDialog({
@@ -63,7 +33,7 @@ export function LogDialog({
   initialKind: ActivityKind;
   entry?: Activity;
   onClose: () => void;
-  onSave: (body: any, id?: string) => Promise<void>;
+  onSave: (body: ActivityInput, id?: string) => Promise<void>;
   onDelete?: (entry: Activity) => Promise<void>;
 }) {
   const [kind, setKind] = useState<ActivityKind>(entry?.kind || initialKind);
@@ -100,57 +70,8 @@ export function LogDialog({
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
-  const d = (key: string, v: string | number) =>
-    setDetails((x) => ({ ...x, [key]: v }));
-  const text = (
-    key: string,
-    label: string,
-    placeholder = "",
-    required = false,
-  ) => (
-    <Field label={label}>
-      <Input
-        value={String(details[key] ?? "")}
-        onChange={(e) => d(key, e.target.value)}
-        placeholder={placeholder}
-        required={required}
-      />
-    </Field>
-  );
-  const number = (
-    key: string,
-    label: string,
-    unit?: string,
-    required = false,
-  ) => (
-    <Field label={label}>
-      <div className="input-unit">
-        <Input
-          type="number"
-          min="0"
-          step="any"
-          value={String(details[key] ?? "")}
-          onChange={(e) =>
-            d(key, e.target.value === "" ? "" : Number(e.target.value))
-          }
-          required={required}
-        />
-        {unit && <span>{unit}</span>}
-      </div>
-    </Field>
-  );
-  const select = (key: string, label: string, values: string[]) => (
-    <Field label={label}>
-      <Select
-        value={String(details[key] || values[0])}
-        onChange={(e) => d(key, e.target.value)}
-      >
-        {values.map((v) => (
-          <option key={v}>{v}</option>
-        ))}
-      </Select>
-    </Field>
-  );
+  const updateDetail = (key: string, value: string | number) =>
+    setDetails((previous) => ({ ...previous, [key]: value }));
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -164,16 +85,24 @@ export function LogDialog({
       )
         clean.unit = "ml";
       if (kind === "sleep" && !clean.sleepType) clean.sleepType = "nap";
-      const body = {
+      const startedAt = DateTime.fromISO(started, { zone: child.timezone })
+        .toUTC()
+        .toISO();
+      const endedAt =
+        timed.includes(kind) && mode === "complete"
+          ? DateTime.fromISO(ended, { zone: child.timezone }).toUTC().toISO()
+          : null;
+      if (
+        !startedAt ||
+        (timed.includes(kind) && mode === "complete" && !endedAt)
+      ) {
+        throw new Error("Enter a valid start and end time.");
+      }
+      const body: ActivityInput = {
         id: entry?.id || crypto.randomUUID(),
         kind,
-        startedAt: DateTime.fromISO(started, { zone: child.timezone })
-          .toUTC()
-          .toISO(),
-        endedAt:
-          timed.includes(kind) && mode === "complete"
-            ? DateTime.fromISO(ended, { zone: child.timezone }).toUTC().toISO()
-            : null,
+        startedAt,
+        endedAt,
         state: mode,
         pausedMs: entry?.pausedMs || 0,
         details: clean,
@@ -188,7 +117,7 @@ export function LogDialog({
       setBusy(false);
     }
   }
-  async function photo(file?: File) {
+  async function uploadPhoto(file?: File) {
     if (!file) return;
     setPhotoBusy(true);
     try {
@@ -200,8 +129,8 @@ export function LogDialog({
         r.onerror = reject;
         r.readAsDataURL(file);
       });
-      const result = await post("/photos", { data });
-      d("photoId", result.id);
+      const result = await post<{ id: string }>("/photos", { data });
+      updateDetail("photoId", result.id);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -210,7 +139,7 @@ export function LogDialog({
   }
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <span className={`activity-symbol ${kind}`}>
             <ActivityIcon kind={kind} />
@@ -218,9 +147,6 @@ export function LogDialog({
           <DialogTitle>
             {entry ? "Edit" : "Log"} {kindLabels[kind].toLowerCase()}
           </DialogTitle>
-          <DialogDescription>
-            A little detail, remembered. Shared with your family.
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={save} className="form-stack">
           {!entry && (
@@ -288,253 +214,14 @@ export function LogDialog({
               </Field>
             )}
           </div>
-          {kind === "sleep" && (
-            <>
-              {select("sleepType", "Type of sleep", ["nap", "night"])}
-              <div className="form-row">
-                {select("settledBy", "Settled with", [
-                  "Not specified",
-                  "Independently",
-                  "Rocking",
-                  "Nursing",
-                  "Held",
-                  "Pram",
-                  "Car",
-                ])}
-                {select("mood", "Woke feeling", [
-                  "Not specified",
-                  "Content",
-                  "Upset",
-                  "Woken by caregiver",
-                ])}
-              </div>
-              {number("settlingMinutes", "Time to fall asleep", "min")}
-            </>
-          )}
-          {kind === "nursing" && (
-            <>
-              {select("side", "Side", ["Left", "Right", "Both"])}
-              <div className="form-row">
-                {number("leftMinutes", "Left side", "min")}
-                {number("rightMinutes", "Right side", "min")}
-              </div>
-              <p className="form-hint">
-                Side minutes are optional. The session timer records total time;
-                pause it for breaks.
-              </p>
-            </>
-          )}
-          {(kind === "bottle" || kind === "pumping") && (
-            <>
-              <div className="form-row">
-                {number(
-                  "amount",
-                  kind === "pumping" ? "Total expressed" : "Amount",
-                  "",
-                  true,
-                )}
-                {select("unit", "Unit", ["ml", "oz"])}
-              </div>
-              {kind === "bottle"
-                ? select("milkType", "Milk", [
-                    "Breast milk",
-                    "Formula",
-                    "Mixed",
-                    "Other",
-                    "Tube feed",
-                  ])
-                : select("side", "Side", ["Both", "Left", "Right"])}
-            </>
-          )}
-          {kind === "diaper" && (
-            <>
-              {select("diaperType", "Diaper", ["Wet", "Dirty", "Mixed", "Dry"])}
-              <div className="form-row">
-                {select("color", "Colour", [
-                  "Not specified",
-                  "Yellow",
-                  "Brown",
-                  "Green",
-                  "Black",
-                  "Red",
-                  "Pale",
-                ])}
-                {select("consistency", "Consistency", [
-                  "Not specified",
-                  "Loose",
-                  "Seedy",
-                  "Formed",
-                  "Hard",
-                ])}
-              </div>
-            </>
-          )}
-          {kind === "potty" && (
-            <div className="form-row">
-              {select("result", "Result", ["Success", "Attempt", "Accident"])}
-              {select("pottyType", "Type", ["Pee", "Poo", "Both"])}
-            </div>
-          )}
-          {kind === "solids" && (
-            <>
-              {text("food", "Food", "e.g. Avocado, oats, banana", true)}
-              {text(
-                "allergens",
-                "Allergens introduced",
-                "e.g. Egg, peanut, dairy",
-              )}
-              <div className="form-row">
-                {select("reaction", "Response", [
-                  "Not specified",
-                  "Loved it",
-                  "Tried it",
-                  "Not keen",
-                  "Possible reaction",
-                ])}
-                {select("meal", "Meal", [
-                  "Breakfast",
-                  "Lunch",
-                  "Dinner",
-                  "Snack",
-                ])}
-              </div>
-            </>
-          )}
-          {kind === "medicine" && (
-            <>
-              {text(
-                "medicine",
-                "Medicine name",
-                "As written on the label",
-                true,
-              )}
-              <div className="form-row">
-                {number("dose", "Dose given", "", true)}
-                {select("unit", "Dose unit", [
-                  "ml",
-                  "mg",
-                  "drops",
-                  "puffs",
-                  "other",
-                ])}
-              </div>
-              <p className="form-hint">
-                Record the dose you gave. Follow the label or your clinician’s
-                instructions; TomSawyer does not calculate doses.
-              </p>
-            </>
-          )}
-          {kind === "growth" && (
-            <>
-              <div className="form-row">
-                {number("weight", "Weight")}
-                {select("weightUnit", "Weight unit", ["kg", "lb"])}
-              </div>
-              <div className="form-row">
-                {number("height", "Length / height")}
-                {number("head", "Head circumference")}
-              </div>
-              {select("lengthUnit", "Length unit", ["cm", "in"])}
-            </>
-          )}
-          {kind === "temperature" && (
-            <div className="form-row">
-              {number("temperature", "Temperature", "", true)}
-              <Field label="Unit">
-                <Select
-                  value={
-                    ["C", "F"].includes(String(details.unit))
-                      ? String(details.unit)
-                      : child.settings.units === "metric"
-                        ? "C"
-                        : "F"
-                  }
-                  onChange={(e) => d("unit", e.target.value)}
-                >
-                  <option>C</option>
-                  <option>F</option>
-                </Select>
-              </Field>
-            </div>
-          )}
-          {kind === "activity" && (
-            <>
-              {text(
-                "activityType",
-                "Activity",
-                "Tummy time, bath, story time…",
-                true,
-              )}
-              <div className="suggestions">
-                {[
-                  "Tummy time",
-                  "Bath time",
-                  "Story time",
-                  "Screen time",
-                  "Skin to skin",
-                  "Outdoor play",
-                  "Indoor play",
-                  "Brush teeth",
-                ].map((v) => (
-                  <button
-                    type="button"
-                    key={v}
-                    onClick={() => d("activityType", v)}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          {kind === "milestone" && (
-            <>
-              {text(
-                "title",
-                "The little (or big) moment",
-                "That very first smile",
-                true,
-              )}
-              <div className="photo-upload">
-                {details.photoId ? (
-                  <img
-                    src={`/api/photos/${details.photoId}`}
-                    alt="Milestone attachment"
-                  />
-                ) : (
-                  <Camera size={22} />
-                )}
-                <label className="upload-label">
-                  {photoBusy
-                    ? "Uploading…"
-                    : details.photoId
-                      ? "Change photo"
-                      : "Add a photo"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(e) => photo(e.target.files?.[0])}
-                    disabled={photoBusy}
-                  />
-                </label>
-              </div>
-            </>
-          )}
-          {kind === "contraction" && (
-            <>
-              {select("intensity", "Intensity", ["Mild", "Moderate", "Strong"])}
-              <p className="form-hint">
-                A record to share with your care team. Follow their guidance on
-                when to call or seek care.
-              </p>
-            </>
-          )}
-          {kind === "skipped_nap" && (
-            <div className="notice sage">
-              Save the time the nap attempt ended. Your strategy will
-              recalculate the retry time and the rest of the day.
-            </div>
-          )}
+          <ActivityFields
+            kind={kind}
+            details={details}
+            units={child.settings.units}
+            onChange={updateDetail}
+            photoBusy={photoBusy}
+            onPhoto={uploadPhoto}
+          />
           <Field label={kind === "note" ? "Your note" : "Notes (optional)"}>
             <textarea
               className="input textarea"

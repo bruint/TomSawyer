@@ -20,7 +20,7 @@ A self-hosted, mobile-first baby tracker with a practical sleep strategy for the
 Install Docker with Compose, then:
 
 ```sh
-git clone https://github.com/tomdygo/TomSawyer.git
+git clone https://github.com/bruint/TomSawyer.git
 cd TomSawyer
 cp .env.example .env
 ```
@@ -67,7 +67,7 @@ Enable user lingering if your service should start without a login. On SELinux h
 
 ### Container images
 
-CI tests and builds the app, then publishes `ghcr.io/tomdygo/tomsawyer:latest`, commit tags, and version tags for AMD64 and ARM64. Source builds work independently of image publishing. To use a published image:
+CI tests and builds the app, then publishes `ghcr.io/bruint/tomsawyer:latest`, commit tags, and version tags for AMD64 and ARM64. Source builds work independently of image publishing. To use a published image:
 
 ```sh
 docker compose pull
@@ -81,6 +81,12 @@ docker compose up -d --no-build
 **Android:** Open the HTTPS site in Chrome, install the app from the browser menu, and enable notifications in Family settings.
 
 Use **Send a test** to check the device. Permission, Focus mode, battery restrictions, internet connectivity, and browser push delivery can affect timing. Reminders are not appropriate for critical alarms. Clock reminders are evaluated every 30 seconds with a five-minute catch-up window; older reminders are deliberately not replayed after a long outage.
+
+## Quick logging
+
+The bottom quick-action bar stays available for the selected child. Sleep and nursing start immediately and turn into stop buttons while their timers run. Wet and dirty diaper buttons record the current time. Bottle repeats the amount shown on its button; use **More → Bottle amount** to choose another preset or enter a custom amount. With no previous bottle, the amount picker opens first.
+
+**More** includes nursing sides, nap/night sleep, mixed diapers, pumping, morning wake, and missed naps. Earlier entries and measurements remain available in the detailed form. Quick entries saved to the server offer **Undo**; changes made by another caregiver are protected by the entry version. Completed entries can queue offline; timers need a connection.
 
 ## Sleep planning
 
@@ -137,7 +143,17 @@ The development UI runs at http://localhost:5173 with an API proxy to port 3000.
 
 For a separate synthetic demo, set a `DEMO_PASSWORD` and `DATABASE_PATH=.local/preview.db`, then run `npm run seed:demo`. Demo seeding refuses a non-empty database or production mode. Never publish a demo database with real family records.
 
-Core files: `server/strategy.ts` (planner), `server/app.ts` (authorized API), `server/push.ts` (reminder worker), `shared/types.ts` (model), and `src/components/` (UI). The shadcn/ui components are local and customizable. Tests exercise real API workflows, account boundaries, concurrent edits, timer conflicts, CSV parsing, timezone boundaries, and planner scenarios.
+Code is grouped by responsibility:
+
+- `src/App.tsx` connects screens and user actions; `src/components/app-shell.tsx` owns the layout.
+- `src/hooks/` handles sessions, navigation, child data, offline sync, theme, and device notifications.
+- `src/components/settings/` contains the separate settings screens and dialogs. Shared form controls live in `src/components/ui/`.
+- `src/lib/` contains API, storage, reporting, and offline-entry helpers. `src/styles/` groups styles by screen, with responsive overrides loaded last.
+- `server/app.ts` composes middleware and feature routers from `server/routes/`. Public authentication routes are mounted before the session boundary; all remaining API routes require authentication. `server/access.ts` checks family membership and owner permissions.
+- `server/activities.ts` shares activity insertion and overlap rules between logging and imports. `server/strategy.ts` builds sleep plans; `server/push.ts` runs reminders.
+- `shared/types.ts` defines the client/server data contracts.
+
+The shadcn/ui components are local and customizable. Tests cover API workflows, account boundaries, concurrent edits, timers, CSV parsing, timezone boundaries, planner scenarios, and offline-entry isolation.
 
 ## Current boundaries
 

@@ -1,0 +1,62 @@
+.history-toolbar {
+  display: flex;
+  gap: 15px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.date-controls {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.date-controls input {
+  width: 142px;
+}
+.history-toolbar > select {
+  max-width: 165px;
+}
+.search-field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  position: relative;
+}
+.search-field svg {
+  position: absolute;
+  left: 12px;
+  color: var(--muted);
+}
+.search-field .input {
+  padding-left: 36px;
+}
+.history-day-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 17px;
+}
+.history-day-label h2 {
+  font-size: 14px;
+}
+.history-group-label {
+  margin-top: 20px;
+  padding: 10px 0;
+  color: var(--muted);
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+}
+.history-card .entry-row {
+  padding: 18px 0;
+}
+.history-card .entry-main strong {
+  font-size: 13px;
+}
+.history-card .entry-main > span {
+  font-size: 11px;
+}
+.card-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 15px;
+  margin-top: 12px;
+  font-size: 10px;
+}

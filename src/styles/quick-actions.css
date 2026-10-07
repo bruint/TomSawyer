@@ -1,0 +1,190 @@
+.bottom-dock {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 232px;
+  right: 0;
+  z-index: 35;
+  background: var(--sidebar);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 24px #1326180a;
+}
+.bottom-dock.with-quick-actions {
+  display: flex;
+  flex-direction: column;
+}
+.quick-action-bar {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  width: min(100%, 800px);
+  margin: auto;
+  padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+  gap: 6px;
+}
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 8px 3px;
+  color: var(--foreground);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  line-height: 1.2;
+  touch-action: manipulation;
+}
+.quick-action strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+.quick-action-detail {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.quick-action:hover:not(:disabled),
+.quick-action:active:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--border);
+}
+.quick-action.running {
+  background: var(--sage);
+  color: var(--primary);
+  border-color: var(--border);
+}
+.quick-action:disabled {
+  opacity: 0.45;
+}
+.has-quick-actions .main-content {
+  padding-bottom: 125px;
+}
+.quick-action-sheet {
+  width: min(560px, calc(100vw - 32px));
+}
+.quick-choice-grid,
+.quick-other-trackers,
+.quick-amounts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.quick-choice-grid button,
+.quick-other-trackers button,
+.quick-amounts button,
+.quick-milk-options button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 60px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.quick-choice-grid button,
+.quick-other-trackers button {
+  flex-direction: column;
+}
+.quick-other-trackers {
+  margin: 18px 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.quick-other-trackers button {
+  background: transparent;
+}
+.quick-choice-grid button:disabled,
+.quick-amounts button:disabled,
+.quick-other-trackers button:disabled {
+  opacity: 0.45;
+}
+.quick-choice-grid button:active,
+.quick-amounts button:active,
+.quick-other-trackers button:active {
+  background: var(--sage);
+}
+.quick-amounts {
+  margin: 16px 0;
+}
+.quick-amounts button {
+  min-height: 84px;
+  flex-direction: column;
+}
+.quick-amounts strong {
+  font-size: 25px;
+  line-height: 1;
+}
+.quick-amounts span {
+  color: var(--muted);
+}
+.quick-milk-options {
+  display: flex;
+  gap: 8px;
+}
+.quick-milk-options button {
+  flex: 1;
+  min-height: 44px;
+  background: transparent;
+}
+.quick-milk-options button[aria-pressed="true"] {
+  background: var(--sage);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+@media (max-width: 1200px) and (min-width: 761px) {
+  .bottom-dock {
+    left: 205px;
+  }
+}
+@media (max-width: 760px) {
+  .bottom-dock {
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 40;
+  }
+  .bottom-dock .mobile-nav {
+    position: static;
+    box-shadow: none;
+  }
+  .quick-action-bar {
+    padding: 6px 8px;
+    gap: 2px;
+  }
+  .quick-action {
+    min-height: 72px;
+    padding: 6px 1px;
+    border-radius: 9px;
+  }
+  .quick-action strong {
+    font-size: 11px;
+  }
+  .quick-action-detail {
+    font-size: 10px;
+  }
+  .has-quick-actions .workspace {
+    padding-bottom: 0;
+  }
+  .has-quick-actions .main-content {
+    padding-bottom: calc(182px + env(safe-area-inset-bottom));
+  }
+  .quick-action-sheet {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-height: 85dvh;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: max(22px, env(safe-area-inset-bottom));
+  }
+}

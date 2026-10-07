@@ -1,0 +1,156 @@
+.auth-shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+}
+.auth-story {
+  background: #e9eddf;
+  padding: 48px 65px;
+  position: relative;
+  overflow: hidden;
+  color: #334b3c;
+  display: flex;
+  flex-direction: column;
+}
+.auth-story .brand {
+  padding: 0;
+  font-size: 30px;
+  color: #365640;
+}
+.auth-story .brand > svg {
+  width: 39px;
+  height: 39px;
+}
+.auth-copy {
+  margin: auto 0;
+  padding: 70px 0 130px;
+  max-width: 510px;
+  position: relative;
+  z-index: 2;
+}
+.auth-copy .eyebrow {
+  color: #708067;
+  font-size: 9px;
+}
+.auth-copy h1 {
+  font-size: 54px;
+  font-weight: 420;
+  line-height: 1.2;
+  margin: 23px 0;
+  letter-spacing: -2px;
+}
+.auth-copy h1 em {
+  font-weight: 350;
+  color: #738768;
+}
+.auth-copy > p {
+  max-width: 380px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: #71806a;
+}
+.auth-story .river-scene {
+  width: 500px;
+  right: -20px;
+  bottom: 0;
+  opacity: 0.7;
+}
+.auth-form-side {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 50px;
+  background: var(--background);
+}
+.auth-form {
+  width: 100%;
+  max-width: 355px;
+}
+.auth-form > .eyebrow {
+  font-size: 9px;
+}
+.auth-form > h2 {
+  font-family: "Fraunces Variable", Georgia, serif;
+  font-size: 32px;
+  font-weight: 450;
+  line-height: 1.25;
+  margin: 15px 0 11px;
+  letter-spacing: -0.8px;
+}
+.auth-form > .muted {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-bottom: 30px;
+}
+.auth-form .form-stack {
+  gap: 17px;
+}
+.auth-form .form-stack > button {
+  margin-top: 8px;
+  font-size: 12px;
+}
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 40px;
+}
+.password-field button {
+  position: absolute;
+  right: 11px;
+  top: 12px;
+  color: var(--muted);
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  margin-top: 23px;
+}
+.auth-links button {
+  font-size: 10px;
+  color: var(--primary);
+}
+.auth-form .notice {
+  margin-top: 18px;
+}
+.onboarding-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 570px;
+  padding: 65px;
+  border-radius: 22px;
+  background: var(--hero);
+}
+.onboarding-card > svg:first-child {
+  color: var(--primary);
+  margin-bottom: 30px;
+}
+.onboarding-card h1 {
+  font-size: 49px;
+  line-height: 1.15;
+  margin: 18px 0;
+  position: relative;
+  z-index: 2;
+}
+.onboarding-card > p {
+  max-width: 350px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--muted);
+  position: relative;
+  z-index: 2;
+}
+.onboarding-card > button {
+  position: relative;
+  z-index: 2;
+  margin-top: 25px;
+}
+.onboarding-card .river-scene {
+  width: 450px;
+  bottom: 25px;
+}

@@ -6,6 +6,7 @@ import { createApp } from "../server/app.js";
 import { hashPassword } from "../server/auth.js";
 import { defaultSettings } from "../shared/types.js";
 import { parseImport } from "../server/import.js";
+import { quickEntry } from "../src/lib/quick-actions";
 
 test("family, tracking, timer concurrency, import and authorization workflows", async (t) => {
   const db = openDatabase(":memory:");
@@ -284,6 +285,44 @@ test("family, tracking, timer concurrency, import and authorization workflows", 
     commit: true,
   });
   assert.equal(invalidImport.status, 400);
+  // Toolbar entries use the same authorization, idempotency and versioned undo as full forms.
+  for (const quick of [
+    quickEntry("diaper", { diaperType: "Wet" }),
+    quickEntry("bottle", { amount: 120, unit: "ml" }),
+    quickEntry("sleep", { sleepType: "nap" }, "active"),
+    quickEntry("nursing", { side: "Left" }, "active"),
+  ]) {
+    const saved = await req(`/children/${childId}/activities`, "POST", quick);
+    assert.equal(saved.status, 201);
+    assert.equal(
+      (await req(`/children/${childId}/activities`, "POST", quick)).status,
+      200,
+    );
+    let version = saved.data.version;
+    if (quick.state === "active") {
+      assert.equal(
+        (
+          await req(
+            `/activities/${quick.id}/timer`,
+            "POST",
+            { action: "stop", version },
+            caregiverCookie,
+          )
+        ).status,
+        200,
+      );
+      version++;
+    }
+    assert.equal(
+      (await req(`/activities/${quick.id}`, "DELETE", { version: version + 1 }))
+        .status,
+      409,
+    );
+    assert.equal(
+      (await req(`/activities/${quick.id}`, "DELETE", { version })).status,
+      200,
+    );
+  }
   // Explicitly provision a separate family to ensure IDs never cross the authorization boundary.
   const fid = randomUUID(),
     uid = randomUUID();
