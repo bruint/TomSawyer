@@ -1,6 +1,6 @@
 import { Loader2, Play, Save, Trash2 } from "lucide-react";
 import { DateTime } from "luxon";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   activityKinds,
@@ -37,6 +37,7 @@ export function LogDialog({
   onSave: (body: ActivityInput, id?: string) => Promise<void>;
   onDelete?: (entry: Activity) => Promise<void>;
 }) {
+  const heading = useRef<HTMLHeadingElement>(null);
   const [kind, setKind] = useState<ActivityKind>(entry?.kind || initialKind);
   const [mode, setMode] = useState<"complete" | "active">(
     entry?.kind === "sleep" && entry.state !== "complete"
@@ -147,12 +148,18 @@ export function LogDialog({
   }
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent
+        aria-describedby={undefined}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          heading.current?.focus();
+        }}
+      >
         <DialogHeader>
           <span className={`activity-symbol ${kind}`}>
             <ActivityIcon kind={kind} />
           </span>
-          <DialogTitle>
+          <DialogTitle ref={heading} tabIndex={-1}>
             {entry ? "Edit" : "Log"} {kindLabels[kind].toLowerCase()}
           </DialogTitle>
         </DialogHeader>

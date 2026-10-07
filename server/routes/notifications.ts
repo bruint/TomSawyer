@@ -1,12 +1,42 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { reminderFromRow, type DB } from "../db.js";
+import { reminderFromRow, transaction, type DB } from "../db.js";
+import {
+  defaultSleepAlerts,
+  type PushDeviceState,
+} from "../../shared/types.js";
 import { sendPush, validPushEndpoint } from "../push.js";
 import { reminderSchema } from "../validation.js";
 
 import { getChild } from "../access.js";
 import { fail, nowIso, param } from "../http.js";
+
+const alertsSchema = z.object({
+  windDown: z.boolean(),
+  sleepWindow: z.boolean(),
+});
+
+function deviceState(
+  db: DB,
+  endpoint: string,
+  userId: string,
+): PushDeviceState {
+  const row = db
+    .prepare(
+      "SELECT p.id, pref.wind_down, pref.sleep_window FROM push_subscriptions p LEFT JOIN push_preferences pref ON pref.subscription_id=p.id WHERE p.endpoint=? AND p.user_id=?",
+    )
+    .get(endpoint, userId);
+  return {
+    enabled: !!row,
+    alerts: row
+      ? {
+          windDown: !!(row.wind_down ?? 1),
+          sleepWindow: !!(row.sleep_window ?? 1),
+        }
+      : { ...defaultSleepAlerts },
+  };
+}
 
 export function createNotificationRouter(db: DB) {
   const router = Router();
@@ -67,8 +97,14 @@ export function createNotificationRouter(db: DB) {
     );
     res.json({ ok: true });
   });
+  router.get("/push/subscription", (req, res) => {
+    const { endpoint } = z
+      .object({ endpoint: z.string().url() })
+      .parse(req.query);
+    res.json(deviceState(db, endpoint, res.locals.user.id));
+  });
   router.post("/push/subscribe", (req, res) => {
-    const subscription = z
+    const { alerts: requestedAlerts, ...subscription } = z
       .object({
         endpoint: z
           .string()
@@ -79,18 +115,29 @@ export function createNotificationRouter(db: DB) {
           p256dh: z.string().min(40).max(200),
           auth: z.string().min(16).max(100),
         }),
+        alerts: alertsSchema.optional(),
       })
       .parse(req.body);
-    db.prepare(
-      "INSERT INTO push_subscriptions VALUES (?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id,subscription=excluded.subscription",
-    ).run(
-      randomUUID(),
-      res.locals.user.id,
-      subscription.endpoint,
-      JSON.stringify(subscription),
-      nowIso(),
-    );
-    res.status(201).json({ ok: true });
+    const alerts =
+      requestedAlerts ??
+      deviceState(db, subscription.endpoint, res.locals.user.id).alerts;
+    transaction(db, () => {
+      const saved = db
+        .prepare(
+          "INSERT INTO push_subscriptions VALUES (?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id,subscription=excluded.subscription RETURNING id",
+        )
+        .get(
+          randomUUID(),
+          res.locals.user.id,
+          subscription.endpoint,
+          JSON.stringify(subscription),
+          nowIso(),
+        )!;
+      db.prepare(
+        "INSERT INTO push_preferences VALUES (?,?,?) ON CONFLICT(subscription_id) DO UPDATE SET wind_down=excluded.wind_down,sleep_window=excluded.sleep_window",
+      ).run(saved.id, Number(alerts.windDown), Number(alerts.sleepWindow));
+    });
+    res.status(201).json({ enabled: true, alerts } satisfies PushDeviceState);
   });
   router.delete("/push/subscribe", (req, res) => {
     const body = z.object({ endpoint: z.string() }).parse(req.body);

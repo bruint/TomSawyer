@@ -103,32 +103,6 @@
   width: 100%;
   color: var(--muted);
 }
-.notification-state {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 0 20px;
-  font-size: 11px;
-}
-.install-card > svg {
-  color: var(--primary);
-  margin-bottom: 15px;
-}
-.install-card p {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.9;
-  margin: 8px 0 17px;
-}
-.install-card h3 {
-  margin-top: 21px;
-  font-size: 12px;
-}
-.install-card small {
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.8;
-}
 .reminder-row {
   display: flex;
   gap: 10px;

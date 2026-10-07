@@ -40,6 +40,12 @@
 .journal-heading h2 {
   font-size: 15px;
 }
+.journal-date-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
 .history-error {
   padding: 30px 0;
   font-size: 13px;

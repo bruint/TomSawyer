@@ -20,7 +20,8 @@ export function HistoryView({
   onEdit: (a: Activity) => void;
   onLog: () => void;
 }) {
-  const [date, setDate] = useState("");
+  const today = DateTime.now().setZone(child.timezone).toISODate()!;
+  const [date, setDate] = useState(today);
   const [kind, setKind] = useState("all");
   const [query, setQuery] = useState("");
   const history = useHistoryDay(child, events, date);
@@ -102,11 +103,18 @@ export function HistoryView({
         </div>
         <div className="journal-heading">
           <h2>{date ? day.toFormat("cccc, d LLLL yyyy") : "Recent history"}</h2>
-          {date && (
-            <button className="text-button" onClick={() => setDate("")}>
-              All recent entries
-            </button>
-          )}
+          <div className="journal-date-actions">
+            {date !== today && (
+              <button className="text-button" onClick={() => setDate(today)}>
+                Today
+              </button>
+            )}
+            {date && (
+              <button className="text-button" onClick={() => setDate("")}>
+                All recent entries
+              </button>
+            )}
+          </div>
         </div>
         {history.loading ? (
           <div className="loading">Loading entries…</div>

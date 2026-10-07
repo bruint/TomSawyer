@@ -12,6 +12,7 @@ import { AuthScreen } from "./components/auth-screen";
 import { Boat } from "./components/brand";
 import { ChildOnboarding } from "./components/child-onboarding";
 import { Dashboard } from "./components/dashboard";
+import { DeviceOnboarding } from "./components/device-onboarding";
 import { HistoryView } from "./components/history-view";
 import { LogDialog } from "./components/log-dialog";
 import { QuickActionToolbar } from "./components/quick-action-toolbar";
@@ -24,9 +25,11 @@ import { StrategyView } from "./components/strategy-view";
 import { SyncStatus } from "./components/sync-status";
 import { Button } from "./components/ui/button";
 import { useChildData } from "./hooks/use-child-data";
+import { useAppInstall } from "./hooks/use-app-install";
 import { useFamilySession } from "./hooks/use-family-session";
 import { useNavigation } from "./hooks/use-navigation";
 import { useOfflineQueue } from "./hooks/use-offline-queue";
+import { usePushNotifications } from "./hooks/use-push-notifications";
 import { useTheme } from "./hooks/use-theme";
 import { ApiError, post, put, remove } from "./lib/api";
 import type { Page } from "./lib/navigation";
@@ -34,6 +37,12 @@ import type { Page } from "./lib/navigation";
 export default function App() {
   const session = useFamilySession();
   const { bootstrap, online, refresh, setOnline } = session;
+  const installation = useAppInstall();
+  const push = usePushNotifications(
+    bootstrap?.push.publicKey,
+    bootstrap?.user.id,
+    installation,
+  );
   const navigation = useNavigation(bootstrap?.children || []);
   const { child, page } = navigation;
   const { theme, setTheme } = useTheme();
@@ -301,6 +310,8 @@ export default function App() {
                 onAddChild={() => setChildDialog("new")}
                 theme={theme}
                 onTheme={setTheme}
+                installation={installation}
+                push={push}
               />
             )}
           </>
@@ -325,6 +336,14 @@ export default function App() {
           child={childDialog === "edit" ? child : undefined}
           onClose={() => setChildDialog(null)}
           onSaved={refreshFamily}
+        />
+      )}
+      {child && online && !childDialog && !log && !quickActions.sheet && (
+        <DeviceOnboarding
+          key={`${bootstrap.user.id}:${installation.standalone}`}
+          userId={bootstrap.user.id}
+          installation={installation}
+          push={push}
         />
       )}
     </>

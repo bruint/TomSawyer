@@ -78,11 +78,17 @@ docker compose up -d --no-build
 
 ## Installing on your phone
 
-**iPhone/iPad:** In Safari, Share → Add to Home Screen. Open the installed app, sign in, then choose **Your family → Notifications → Enable notifications**. Web Push requires iOS/iPadOS 16.4 or later and HTTPS.
+After adding your first child or joining a family, device onboarding offers app installation and notification setup. You can skip either and finish later in **Family settings → Notifications**. Setup is per account and device.
 
-**Android:** Open the HTTPS site in Chrome, install the app from the browser menu, and enable notifications in Family settings.
+**iPhone/iPad:** In Safari, Share → Add to Home Screen. Open TomSawyer from its icon and sign in if needed; onboarding continues with notification permission. Web Push requires iOS/iPadOS 16.4 or later and HTTPS.
 
-Use **Send a test** to check the device. Permission, Focus mode, battery restrictions, internet connectivity, and browser push delivery can affect timing. Reminders are not appropriate for critical alarms. Clock reminders are evaluated every 30 seconds with a five-minute catch-up window; older reminders are deliberately not replayed after a long outage.
+**Android:** Tap **Install app** during onboarding when Chrome offers it, or use Chrome’s Install app / Add to Home screen menu. Then enable notifications.
+
+Both automatic sleep alerts are enabled by default: **wind-down** at the routine’s configured lead time, and **sleep window** when the suggested window opens (10 minutes before the target sleep time). They apply to every child in the family. Each device can turn either alert off; custom reminders remain separate. The server recalculates from actual wake and sleep logs, including short naps and missed naps, and opens the child’s strategy when an alert is tapped. It sends no timed sleep alerts while a child is sleeping, without an observed wake, or before two months corrected age.
+
+The app does not need to stay open. Use **Send a test** in Settings to check delivery. Permission, Focus mode, battery restrictions, internet connectivity, and browser push delivery can affect timing. Reminders are not appropriate for critical alarms. The server checks every 30 seconds, retries failed deliveries within a five-minute catch-up window, and does not replay older alerts after an outage.
+
+While a nap is running, the strategy shows **If they wake now**. Sleep so far, the next wake window, remaining naps, and bedtime are recalculated every 15 seconds while the app is visible and connected. The actual timer stays ongoing until a caregiver ends it. Journal opens on today in the child’s timezone; use the day arrows, date picker, or All recent entries to reach older logs.
 
 ## Quick logging
 
@@ -159,7 +165,7 @@ The shadcn/ui components are local and customizable. Tests cover API workflows, 
 
 ## Current boundaries
 
-This release has web-app notifications and installation, not native Apple Watch, Siri, lock-screen widgets, or Live Activities. It records milestones without a developmental assessment catalogue and growth without reference percentiles. It has no voice/photo-to-log AI, general parenting chatbot, clinical sleep programme, or medication decision support. History in the UI covers the latest 90 days; exports retain the full history. Offline mode caches that recent history and queues completed entries, with visible conflict handling on reconnect.
+This release has web-app notifications and installation, not native Apple Watch, Siri, lock-screen widgets, or Live Activities. It records milestones without a developmental assessment catalogue and growth without reference percentiles. It has no voice/photo-to-log AI, general parenting chatbot, clinical sleep programme, or medication decision support. Journal loads the latest 90 days and can fetch an older date while online; exports retain the full history. Offline mode caches that recent history and queues completed entries, with visible conflict handling on reconnect.
 
 ## Licence
 

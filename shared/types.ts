@@ -157,6 +157,18 @@ export interface Bootstrap {
   push: { publicKey: string; enabled: boolean };
   serverTime: string;
 }
+export interface SleepAlertPreferences {
+  windDown: boolean;
+  sleepWindow: boolean;
+}
+export const defaultSleepAlerts: SleepAlertPreferences = {
+  windDown: true,
+  sleepWindow: true,
+};
+export interface PushDeviceState {
+  enabled: boolean;
+  alerts: SleepAlertPreferences;
+}
 export const kindLabels: Record<ActivityKind, string> = {
   sleep: "Sleep",
   nursing: "Nursing",

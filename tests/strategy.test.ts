@@ -9,7 +9,8 @@ import {
   type Activity,
   type ActivityKind,
 } from "../shared/types.js";
-import { reminderDue, validPushEndpoint } from "../server/push.js";
+import { validPushEndpoint } from "../server/push.js";
+import { reminderDue } from "../server/notification-schedule.js";
 const child: Child = {
   id: "child",
   familyId: "family",
@@ -108,6 +109,50 @@ test("active overnight sleep has no daytime alarms or predictions", () => {
   assert.equal(plan.status, "sleeping");
   assert.equal(plan.windDownAt, null);
   assert.equal(plan.nextSleep, null);
+});
+test("an ongoing nap continually replans from waking now and includes sleep so far", () => {
+  const active = {
+    ...activity("sleep", "09:00", null, { sleepType: "nap" }),
+    state: "active" as const,
+  };
+  const logs = [activity("wake", "07:00"), active];
+  const planAt = (time: string) =>
+    buildStrategy(child, logs, new Date(at(time)));
+  const short = planAt("09:20");
+  assert.equal(short.status, "sleeping");
+  assert.equal(short.summary, "If they wake now");
+  assert.equal(short.totalNapMinutes, 20);
+  assert.equal(short.completedNaps, 0);
+  assert.equal(short.wakeWindowMinutes, 145);
+  assert.equal(
+    DateTime.fromISO(short.nextSleep!)
+      .setZone(child.timezone)
+      .toFormat("HH:mm"),
+    "11:45",
+  );
+  assert(short.reasons.some((reason) => reason.code === "short-nap"));
+  const longer = planAt("09:50");
+  assert.equal(longer.totalNapMinutes, 50);
+  assert.equal(longer.wakeWindowMinutes, 165);
+  assert.equal(
+    DateTime.fromISO(longer.nextSleep!)
+      .setZone(child.timezone)
+      .toFormat("HH:mm"),
+    "12:35",
+  );
+  assert(!longer.reasons.some((reason) => reason.code === "short-nap"));
+  assert(
+    longer.reasons.some((reason) =>
+      ["protect-bedtime", "short-final-nap"].includes(reason.code),
+    ),
+  );
+  assert(longer.steps.every((step) => step.tentative));
+  assert.equal(
+    Date.parse(planAt("09:51").nextSleep!) - Date.parse(longer.nextSleep!),
+    60000,
+  );
+  assert.equal(planAt("09:51").totalNapMinutes, 51);
+  assert.equal(active.endedAt, null, "projections never finish the real timer");
 });
 test("newborn corrected age suppresses rigid scheduling", () => {
   const c = { ...child, birthDate: "2026-07-01", dueDate: "2026-09-10" };

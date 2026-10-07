@@ -16,7 +16,11 @@ export function writeStored(key: string, value: unknown) {
 
 export function clearFamilyStorage() {
   for (const key of Object.keys(localStorage)) {
-    if (key.startsWith("ts:") && key !== "ts:theme") {
+    if (
+      key.startsWith("ts:") &&
+      key !== "ts:theme" &&
+      !key.startsWith("ts:device-setup:")
+    ) {
       localStorage.removeItem(key);
     }
   }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { Bootstrap, Child } from "../../../shared/types";
+import type { AppInstallation } from "../../hooks/use-app-install";
+import type { PushNotifications } from "../../hooks/use-push-notifications";
 import { PageHeader } from "../page-header";
 import { DataSettings } from "./data-settings";
 import { FamilySettings } from "./family-settings";
@@ -22,6 +24,8 @@ export function SettingsView({
   onAddChild,
   theme,
   onTheme,
+  installation,
+  push,
 }: {
   child: Child;
   bootstrap: Bootstrap;
@@ -30,6 +34,8 @@ export function SettingsView({
   onAddChild: () => void;
   theme: string;
   onTheme: (value: string) => void;
+  installation: AppInstallation;
+  push: PushNotifications;
 }) {
   const [tab, setTab] = useState<SettingsTab>("routine");
   const owner = bootstrap.user.role === "owner";
@@ -70,7 +76,8 @@ export function SettingsView({
       <div hidden={tab !== "notifications"}>
         <NotificationSettings
           child={child}
-          publicKey={bootstrap.push.publicKey}
+          installation={installation}
+          push={push}
         />
       </div>
       <div hidden={tab !== "data"}>

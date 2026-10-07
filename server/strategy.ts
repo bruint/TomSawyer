@@ -1,5 +1,11 @@
 import { DateTime } from "luxon";
-import type { Activity, Child, Strategy, PlanStep } from "../shared/types.js";
+import {
+  elapsedMs,
+  type Activity,
+  type Child,
+  type Strategy,
+  type PlanStep,
+} from "../shared/types.js";
 
 const minutes = (a: DateTime, b: DateTime) =>
   Math.round(a.diff(b, "minutes").minutes);
@@ -30,9 +36,13 @@ export function buildStrategy(
   child: Child,
   activities: Activity[],
   nowInput = new Date(),
-  overrides: { napCount?: number } = {},
+  overrides: { napCount?: number; rollForward?: boolean } = {},
 ): Strategy {
   const now = DateTime.fromJSDate(nowInput).setZone(child.timezone);
+  // Alerts keep their original deadlines; only the visible plan rolls past times forward.
+  const rollForward = overrides.rollForward !== false;
+  const afterNow = (time: DateTime) =>
+    rollForward ? maxDate(now, time) : time;
   const day = dayBoundary(child, now);
   const ageDate =
     child.dueDate && child.dueDate > child.birthDate
@@ -218,20 +228,32 @@ export function buildStrategy(
       bedtime: null,
     };
   if (active) {
+    const napSoFar = Math.floor(elapsedMs(active, now.toMillis()) / 60000);
     base.status = "sleeping";
     base.headline = "Sleeping";
-    base.summary =
-      "Times assume a typical nap. Finish the timer when they wake to update the plan.";
-    next = maxDate(
-      DateTime.fromISO(active.startedAt).plus({
-        minutes: child.settings.napMinutes,
-      }),
-      now.plus({ minutes: 10 }),
-    ).plus({ minutes: getWindow(naps.length + 1) });
+    base.summary = "If they wake now";
+    window = getWindow(naps.length + 1);
+    const previousShortNap = reasons.findIndex(
+      (reason) => reason.code === "short-nap",
+    );
+    if (previousShortNap !== -1) reasons.splice(previousShortNap, 1);
+    if (napSoFar < 40) {
+      window = Math.max(45, window - 20);
+      reasons.push({
+        code: "short-nap",
+        title: "A shorter wake window",
+        detail:
+          "If this nap ends now, the next wake window is 20 minutes shorter.",
+      });
+    }
+    base.wakeWindowMinutes = window;
+    if (DateTime.fromISO(active.startedAt) >= day)
+      base.totalNapMinutes += napSoFar;
+    next = now.plus({ minutes: window });
     base.awakeSince = null;
   }
   const overdue = minutes(now, next);
-  if (overdue > 15 && !active && !skipped) {
+  if (overdue > 15 && !active && !skipped && rollForward) {
     reasons.push({
       code: "window-passed",
       title: "The window has passed",
@@ -241,13 +263,11 @@ export function buildStrategy(
     next = now.plus({ minutes: 5 });
     base.status = "settling";
   }
-  next = maxDate(next, now);
+  next = afterNow(next);
   let remaining = Math.max(0, plannedNaps - naps.length - (active ? 1 : 0));
   const steps: PlanStep[] = [];
   let cursor = next;
-  let lastEnd = active
-    ? next.minus({ minutes: getWindow(naps.length + 1) })
-    : awakeSince;
+  let lastEnd = active ? now : awakeSince;
   let projectedIndex = naps.length + (active ? 1 : 0);
   while (remaining > 0) {
     let duration =
@@ -298,12 +318,11 @@ export function buildStrategy(
   let bed = lastEnd.plus({ minutes: getWindow(plannedNaps) });
   if (steps.length === 0 && !active) bed = next;
   const earliest = preferredBed.minus({ minutes: 90 });
-  bed = maxDate(
-    now,
+  bed = afterNow(
     maxDate(earliest, minDate(preferredBed.plus({ minutes: 30 }), bed)),
   );
   // With no naps, preserve the family's bedtime; never suggest a morning bedtime.
-  if (plannedNaps === 0) bed = maxDate(now, preferredBed);
+  if (plannedNaps === 0) bed = afterNow(preferredBed);
   if (bed < preferredBed.minus({ minutes: 20 }))
     reasons.push({
       code: "early-bedtime",
@@ -326,12 +345,11 @@ export function buildStrategy(
   });
   const first = steps[0];
   const firstTime = DateTime.fromISO(first.at);
-  const windDown = maxDate(
-    now,
+  const windDown = afterNow(
     firstTime.minus({ minutes: child.settings.windDownMinutes }),
   );
   base.nextSleep = first.at;
-  base.windowStart = iso(maxDate(now, firstTime.minus({ minutes: 10 })));
+  base.windowStart = iso(afterNow(firstTime.minus({ minutes: 10 })));
   base.windowEnd = iso(firstTime.plus({ minutes: 10 }));
   base.windDownAt = iso(windDown);
   base.bedtime = iso(bed);

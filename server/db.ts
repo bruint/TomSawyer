@@ -24,6 +24,7 @@ export function openDatabase(
     CREATE INDEX IF NOT EXISTS activities_child_time ON activities(child_id, started_at DESC);
     CREATE UNIQUE INDEX IF NOT EXISTS one_timer_per_kind ON activities(child_id, kind) WHERE state != 'complete';
     CREATE TABLE IF NOT EXISTS push_subscriptions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, endpoint TEXT UNIQUE NOT NULL, subscription TEXT NOT NULL, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS push_preferences (subscription_id TEXT PRIMARY KEY REFERENCES push_subscriptions(id) ON DELETE CASCADE, wind_down INTEGER NOT NULL DEFAULT 1 CHECK(wind_down IN (0,1)), sleep_window INTEGER NOT NULL DEFAULT 1 CHECK(sleep_window IN (0,1)));
     CREATE TABLE IF NOT EXISTS reminders (id TEXT PRIMARY KEY, child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE, title TEXT NOT NULL, kind TEXT NOT NULL, mode TEXT NOT NULL, at_time TEXT NOT NULL, interval_minutes INTEGER NOT NULL, weekdays TEXT NOT NULL, daytime_only INTEGER NOT NULL, enabled INTEGER NOT NULL DEFAULT 1);
     CREATE TABLE IF NOT EXISTS push_deliveries (dedupe_key TEXT PRIMARY KEY, delivered_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
