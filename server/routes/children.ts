@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { activitiesFor, childFromRow, transaction, type DB } from "../db.js";
-import { buildStrategy } from "../strategy.js";
+import { buildStrategy, STRATEGY_HISTORY_DAYS } from "../strategy.js";
 import { childSchema } from "../validation.js";
 
 import { getChild, requireOwner } from "../access.js";
@@ -77,7 +77,11 @@ export function createChildRouter(db: DB) {
     res.json(
       buildStrategy(
         child,
-        activitiesFor(db, child.id, DateTime.utc().minus({ days: 3 }).toISO()!),
+        activitiesFor(
+          db,
+          child.id,
+          DateTime.utc().minus({ days: STRATEGY_HISTORY_DAYS }).toISO()!,
+        ),
         new Date(),
         { napCount },
       ),

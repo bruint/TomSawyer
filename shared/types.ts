@@ -145,6 +145,13 @@ export interface Strategy {
   totalNapMinutes: number;
   completedNaps: number;
   plannedNaps: number;
+  napOptions?: {
+    napCount: number;
+    bedtime: string | null;
+    available: boolean;
+    recommended: boolean;
+    detail: string;
+  }[];
   awakeSince: string | null;
   wakeWindowMinutes: number;
   caveat: string;

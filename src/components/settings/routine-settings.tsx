@@ -66,7 +66,7 @@ export function RoutineSettings({
                 }
               />
             </Field>
-            <Field label="Preferred bedtime">
+            <Field label="Usual bedtime">
               <Input
                 type="time"
                 value={settings.bedtime}

@@ -8,7 +8,7 @@ A self-hosted, mobile-first baby tracker with a practical sleep strategy for the
 
 - Track sleep, nursing, bottles and tube feeds, solids, diapers, potty, pumping, medicine, growth, temperature, activities, milestones with photos, contractions, and notes.
 - Start shared timers for sleep, nursing, pumping, activities, and contractions. Pause supported timers; correct or backdate completed entries. Entries show who logged them.
-- Get an explained next sleep window and a plan through bedtime. Short naps, late wakes, and explicit missed naps change the plan immediately. Compare different nap counts without saving changes.
+- Get an explained next sleep window and a plan through bedtime. Short naps, late wakes, and explicit missed naps change the plan immediately. Compare nap counts with their estimated bedtimes in one tap.
 - Set individual wake windows, nap count, preferred wake/bed times, wind-down lead time, timezone, corrected age, and units for each child.
 - Invite caregivers with separate passwords and single-use invitation links. The family owner manages profiles and access. All caregivers can log and correct activities.
 - See recent history, 7/14/30-day summaries, a week sleep chart, recorded growth, food responses, and milestones. Download complete per-child CSV/JSON exports and preview imports before saving.
@@ -94,11 +94,15 @@ While a nap is running, the strategy shows **If they wake now**. Sleep so far, t
 
 The bottom quick-action bar stays available for the selected child. Sleep and nursing start immediately and turn into stop buttons while their timers run. Wet and dirty diaper buttons record the current time. Bottle repeats the amount shown on its button; use **More → Bottle amount** to choose another preset or enter a custom amount. With no previous bottle, the amount picker opens first.
 
+Near the live plan's next sleep time, Sleep chooses nap or night sleep from that plan, including an earlier bedtime or later nap. Otherwise it uses the child's usual clock. Previewing another count does not change the quick action.
+
 **More** includes nursing sides, nap/night sleep, mixed diapers, pumping, morning wake, and missed naps. Earlier entries and measurements remain available in the detailed form. Quick entries saved to the server offer **Undo**; changes made by another caregiver are protected by the entry version. Completed entries can queue offline; timers need a connection.
 
 ## Sleep planning
 
-The planner is an inspectable scheduling heuristic. It uses corrected age for its editable starting defaults, the morning wake, actual completed naps, a running sleep, missed nap attempts, and family preferences. It gives each adjustment a reason. Later steps are tentative, and logging new information recalculates the whole remaining day.
+The planner is an inspectable scheduling heuristic. Automatic compares complete schedules across nearby nap counts, using corrected age, today's wake and nap lengths, and the past week's logged routines. History influences the count only after at least three days containing a recorded morning, naps, and night. Each option shows its estimated bedtime; tapping one previews it without saving a setting. Custom wake windows and a saved nap count remain preferences.
+
+Usual bedtime is a starting point. An earlier wake, short naps, a late morning, or a long current nap can move it earlier or later. The last nap can be a full nap or a shorter bridge nap. Counts that would run too far into the night are marked unavailable, rather than silently dropping a nap while displaying the wrong count. Later steps remain tentative, and new logs recalculate the remaining day.
 
 The planner does **not** implement a clinically validated prediction model or an AI sleep consultant. Under two months corrected age it shows responsive-care guidance rather than timed predictions. It does not recommend delaying feeds, calculate medicine doses, diagnose allergies, or derive growth percentiles. Follow your child's cues and your clinician's guidance. All clinical fields record caregiver observations.
 
@@ -158,7 +162,7 @@ Code is grouped by responsibility:
 - `src/components/settings/` contains the separate settings screens and dialogs. Shared form controls live in `src/components/ui/`.
 - `src/lib/` contains API, storage, reporting, and offline-entry helpers. `src/styles/` groups styles by screen, with responsive overrides loaded last.
 - `server/app.ts` composes middleware and feature routers from `server/routes/`. Public authentication routes are mounted before the session boundary; all remaining API routes require authentication. `server/access.ts` checks family membership and owner permissions.
-- `server/activities.ts` shares activity insertion and overlap rules between logging and imports. `server/strategy.ts` builds sleep plans; `server/push.ts` runs reminders.
+- `server/activities.ts` shares activity insertion and overlap rules between logging and imports. `server/strategy/` separates sleep-day context, routine defaults, and schedule comparison; `server/strategy.ts` presents the selected plan. `server/push.ts` runs reminders using the same planner and history.
 - `shared/types.ts` defines the client/server data contracts.
 
 The shadcn/ui components are local and customizable. Tests cover API workflows, account boundaries, concurrent edits, timers, CSV parsing, timezone boundaries, planner scenarios, and offline-entry isolation.

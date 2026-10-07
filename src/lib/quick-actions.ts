@@ -5,6 +5,7 @@ import type {
   ActivityKind,
   Child,
   Details,
+  Strategy,
 } from "../../shared/types";
 
 export interface BottlePreset {
@@ -41,7 +42,25 @@ export function nextNursingSide(events: Activity[]): "Left" | "Right" {
   return previous?.details.side === "Left" ? "Right" : "Left";
 }
 
-export function sleepTypeNow(child: Child, now = new Date()): "nap" | "night" {
+export function sleepTypeNow(
+  child: Child,
+  now = new Date(),
+  strategy?: Pick<Strategy, "generatedAt" | "steps" | "status"> | null,
+): "nap" | "night" {
+  const next = strategy?.steps.find(
+    (step) => step.kind === "nap" || step.kind === "bedtime",
+  );
+  const fresh =
+    strategy &&
+    Math.abs(now.getTime() - Date.parse(strategy.generatedAt)) <= 5 * 60000;
+  if (
+    fresh &&
+    strategy.status !== "sleeping" &&
+    next &&
+    Math.abs(now.getTime() - Date.parse(next.at)) <= 60 * 60000
+  ) {
+    return next.kind === "bedtime" ? "night" : "nap";
+  }
   const local = DateTime.fromJSDate(now, { zone: child.timezone });
   const minutes = local.hour * 60 + local.minute;
   const toMinutes = (clock: string) => {

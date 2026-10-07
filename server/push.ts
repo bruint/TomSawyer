@@ -2,6 +2,7 @@ import webpush from "web-push";
 import { DateTime } from "luxon";
 import type { DB, Row } from "./db.js";
 import { childFromRow, activitiesFor, reminderFromRow } from "./db.js";
+import { STRATEGY_HISTORY_DAYS } from "./strategy.js";
 import { notificationJobs } from "./notification-schedule.js";
 
 export function initPush(db: DB) {
@@ -78,7 +79,11 @@ export async function deliverNotifications(
     const child = childFromRow(row);
     const targets = subscriptions.filter((s) => s.family_id === child.familyId);
     if (!targets.length) continue;
-    const events = activitiesFor(db, child.id, now.minus({ days: 3 }).toISO()!);
+    const events = activitiesFor(
+      db,
+      child.id,
+      now.minus({ days: STRATEGY_HISTORY_DAYS }).toISO()!,
+    );
     const reminders = db
       .prepare("SELECT * FROM reminders WHERE child_id=? AND enabled=1")
       .all(child.id)

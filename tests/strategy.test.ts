@@ -80,7 +80,7 @@ test("missed nap replans without a fake sleep log", () => {
     "11:00",
   );
 });
-test("late wake is explained and remaining naps do not crowd bedtime", () => {
+test("a saved nap count allows a later bedtime after a late wake without dropping naps", () => {
   const plan = buildStrategy(
     child,
     [activity("wake", "09:00")],
@@ -98,7 +98,9 @@ test("late wake is explained and remaining naps do not crowd bedtime", () => {
       Date.parse(steps[i].at) >=
         Date.parse(steps[i - 1].endAt || steps[i - 1].at),
     );
-  assert(DateTime.fromISO(plan.bedtime!).setZone(child.timezone).hour <= 20);
+  assert.equal(steps.filter((step) => step.kind === "nap").length, 3);
+  assert(plan.reasons.some((reason) => reason.code === "late-bedtime"));
+  assert(DateTime.fromISO(plan.bedtime!).setZone(child.timezone).hour > 20);
 });
 test("active overnight sleep has no daytime alarms or predictions", () => {
   const overnight = {
@@ -181,6 +183,298 @@ test("nap comparison does not mutate saved settings", () => {
   );
   assert.equal(p.plannedNaps, 2);
   assert.equal(JSON.stringify(child), before);
+});
+
+const flexibleChild: Child = {
+  ...child,
+  birthDate: "2026-06-01",
+  settings: { ...defaultSettings },
+};
+const clock = (value: string | null) =>
+  value
+    ? DateTime.fromISO(value).setZone(child.timezone).toFormat("HH:mm")
+    : null;
+
+test("automatic compares complete three- and four-nap plans with different wake windows", () => {
+  const running = { ...activity("sleep", "11:00"), state: "active" as const };
+  const logs = [
+    activity("wake", "07:00"),
+    activity("sleep", "09:00", "09:25"),
+    running,
+  ];
+  const before = JSON.stringify({ child: flexibleChild, logs });
+  const auto = buildStrategy(flexibleChild, logs, new Date(at("12:30")));
+  assert.deepEqual(
+    auto.napOptions?.map((option) => option.napCount),
+    [3, 4],
+  );
+  assert(auto.napOptions?.every((option) => option.available));
+  assert.equal(auto.plannedNaps, 3);
+  const three = buildStrategy(flexibleChild, logs, new Date(at("12:30")), {
+    napCount: 3,
+  });
+  const four = buildStrategy(flexibleChild, logs, new Date(at("12:30")), {
+    napCount: 4,
+  });
+  assert.equal(three.wakeWindowMinutes, 150);
+  assert.equal(four.wakeWindowMinutes, 120);
+  assert.equal(clock(three.bedtime), "18:30");
+  assert.equal(clock(four.bedtime), "20:00");
+  assert.equal(three.steps.filter((step) => step.kind === "nap").length, 1);
+  assert.equal(four.steps.filter((step) => step.kind === "nap").length, 2);
+  const final = three.steps.find((step) => step.kind === "nap")!;
+  assert.equal(
+    Date.parse(final.endAt!) - Date.parse(final.at),
+    60 * 60000,
+    "a final nap is not automatically capped at 35 minutes",
+  );
+  assert(three.steps.every((step) => step.tentative));
+  assert(four.reasons.some((reason) => reason.code === "nap-choice"));
+  assert.equal(JSON.stringify({ child: flexibleChild, logs }), before);
+});
+
+test("short-nap days can select an extra nap while longer naps can select fewer", () => {
+  const shortLogs = [
+    activity("wake", "07:00"),
+    activity("sleep", "08:30", "08:50"),
+    activity("sleep", "10:35", "10:55"),
+  ];
+  const short = buildStrategy(flexibleChild, shortLogs, new Date(at("11:00")));
+  assert.equal(short.plannedNaps, 4);
+  assert.equal(short.wakeWindowMinutes, 100);
+  assert.equal(clock(short.bedtime), "18:50");
+  const longLogs = [
+    activity("wake", "07:00"),
+    activity("sleep", "09:00", "11:00"),
+    { ...activity("sleep", "13:00"), state: "active" as const },
+  ];
+  const long = buildStrategy(flexibleChild, longLogs, new Date(at("14:30")));
+  assert.equal(long.plannedNaps, 3);
+  assert.equal(long.totalNapMinutes, 210);
+  assert.equal(clock(long.bedtime), "19:45");
+  assert.equal(
+    clock(
+      long.napOptions?.find((option) => option.napCount === 4)?.bedtime ?? null,
+    ),
+    "21:45",
+  );
+});
+
+test("bedtime can move earlier and later than the old preferred-time clamps", () => {
+  const logs = [
+    activity("wake", "07:00"),
+    activity("sleep", "08:30", "08:50"),
+    activity("sleep", "10:35", "10:55"),
+  ];
+  const early = buildStrategy(flexibleChild, logs, new Date(at("11:00")), {
+    napCount: 3,
+  });
+  assert.equal(clock(early.bedtime), "16:35");
+  assert(early.reasons.some((reason) => reason.code === "early-bedtime"));
+  const late = buildStrategy(
+    flexibleChild,
+    [activity("wake", "09:00")],
+    new Date(at("09:10")),
+  );
+  assert.equal(clock(late.bedtime), "20:15");
+  assert(late.reasons.some((reason) => reason.code === "late-bedtime"));
+  assert.equal(
+    late.steps.filter((step) => step.kind === "nap").length,
+    late.plannedNaps,
+  );
+});
+
+test("a long late nap can lead straight to bedtime with an honest lower count", () => {
+  const logs = [
+    activity("wake", "07:00"),
+    activity("sleep", "09:00", "10:00"),
+    activity("sleep", "14:00", "16:45"),
+  ];
+  const plan = buildStrategy(flexibleChild, logs, new Date(at("16:50")));
+  assert.equal(plan.plannedNaps, 2);
+  assert.equal(
+    plan.wakeWindowMinutes,
+    150,
+    "the evening option keeps age-appropriate wake windows",
+  );
+  assert.equal(clock(plan.bedtime), "19:15");
+  assert.equal(plan.steps.filter((step) => step.kind === "nap").length, 0);
+  assert.equal(plan.steps.at(-1)?.kind, "bedtime");
+  assert(
+    plan.napOptions?.some(
+      (option) => option.napCount === 2 && option.recommended,
+    ),
+  );
+});
+
+test("unavailable nap counts are explained and never mislabel the actual timeline", () => {
+  const late = buildStrategy(
+    flexibleChild,
+    [activity("wake", "09:00")],
+    new Date(at("09:10")),
+    { napCount: 6 },
+  );
+  assert.notEqual(late.plannedNaps, 6);
+  assert(
+    late.reasons.some((reason) => reason.code === "nap-count-unavailable"),
+  );
+  assert.equal(
+    late.napOptions?.find((option) => option.napCount === 6)?.available,
+    false,
+  );
+  assert.equal(
+    late.steps.filter((step) => step.kind === "nap").length,
+    late.plannedNaps,
+  );
+  const logs = [
+    activity("wake", "07:00"),
+    activity("sleep", "08:30", "08:50"),
+    activity("sleep", "10:35", "10:55"),
+  ];
+  const past = buildStrategy(flexibleChild, logs, new Date(at("11:00")), {
+    napCount: 1,
+  });
+  assert(past.plannedNaps >= 2);
+  assert.equal(
+    past.napOptions?.find((option) => option.napCount === 1)?.available,
+    false,
+  );
+  assert(
+    past.reasons.some((reason) => reason.code === "nap-count-unavailable"),
+  );
+});
+
+function history(count: number, days: number, includeNight = true): Activity[] {
+  return Array.from({ length: days }, (_, offset) => {
+    const day = DateTime.fromISO(at("07:00")).minus({ days: offset + 1 });
+    const dated = (entry: Activity) => ({
+      ...entry,
+      startedAt: DateTime.fromISO(entry.startedAt)
+        .minus({ days: offset + 1 })
+        .toISO()!,
+      endedAt: entry.endedAt
+        ? DateTime.fromISO(entry.endedAt)
+            .minus({ days: offset + 1 })
+            .toISO()!
+        : null,
+    });
+    return [
+      dated(activity("wake", "07:00")),
+      ...["09:00", "12:00", "15:00", "17:30"]
+        .slice(0, count)
+        .map((start) =>
+          dated(
+            activity(
+              "sleep",
+              start,
+              DateTime.fromISO(at(start))
+                .plus({ minutes: 45 })
+                .toFormat("HH:mm"),
+            ),
+          ),
+        ),
+      ...(includeNight
+        ? [
+            {
+              ...activity("sleep", "20:00", "21:00", { sleepType: "night" }),
+              startedAt: day.set({ hour: 20 }).toISO()!,
+              endedAt: day.plus({ days: 1 }).toISO()!,
+            },
+          ]
+        : []),
+    ];
+  }).flat();
+}
+
+test("recent logged routines influence automatic choices without treating partial days as fewer naps", () => {
+  const today = [
+    activity("wake", "07:00"),
+    activity("sleep", "09:00", "09:25"),
+    { ...activity("sleep", "11:00"), state: "active" as const },
+  ];
+  const plan = (older: Activity[]) =>
+    buildStrategy(flexibleChild, [...older, ...today], new Date(at("12:30")));
+  assert.equal(plan([]).plannedNaps, 3);
+  assert.equal(plan(history(4, 3)).plannedNaps, 4);
+  assert(
+    plan(history(4, 3)).reasons.some(
+      (reason) => reason.code === "recent-routine",
+    ),
+  );
+  assert.equal(
+    plan(history(4, 2)).plannedNaps,
+    3,
+    "two days are not enough to learn a routine",
+  );
+  assert.equal(
+    plan(history(1, 4, false)).plannedNaps,
+    3,
+    "partial days do not imply a one-nap routine",
+  );
+  assert.equal(
+    plan(history(0, 4)).plannedNaps,
+    3,
+    "missing nap logs do not imply no naps",
+  );
+});
+
+test("automatic alert plans keep the same count and deadlines when time passes without a log", () => {
+  const logs = [activity("wake", "07:00")];
+  const before = buildStrategy(flexibleChild, logs, new Date(at("07:30")), {
+    rollForward: false,
+  });
+  const after = buildStrategy(flexibleChild, logs, new Date(at("11:00")), {
+    rollForward: false,
+  });
+  assert.equal(before.plannedNaps, after.plannedNaps);
+  assert.equal(before.nextSleep, after.nextSleep);
+  assert.equal(before.windDownAt, after.windDownAt);
+  assert.equal(before.windowStart, after.windowStart);
+  const preview = buildStrategy(flexibleChild, logs, new Date(at("07:30")), {
+    napCount: 0,
+  });
+  assert.equal(
+    preview.napOptions?.find((option) => option.recommended)?.napCount,
+    before.plannedNaps,
+    "a preview must not change which count is recommended in the live plan",
+  );
+});
+
+test("schedules stay chronological and their counts include completed and running naps", () => {
+  const logs = [
+    activity("wake", "07:00"),
+    activity("sleep", "09:00", "09:25"),
+    { ...activity("sleep", "11:00"), state: "active" as const },
+  ];
+  for (const birthDate of [
+    "2026-06-01",
+    "2026-03-01",
+    "2025-10-01",
+    "2025-01-01",
+  ]) {
+    for (let napCount = 0; napCount <= 6; napCount++) {
+      const plan = buildStrategy(
+        { ...flexibleChild, birthDate },
+        logs,
+        new Date(at("12:30")),
+        { napCount },
+      );
+      const steps = plan.steps.filter((step) => step.kind !== "wind-down");
+      assert.equal(
+        plan.plannedNaps,
+        2 + steps.filter((step) => step.kind === "nap").length,
+      );
+      for (let index = 1; index < steps.length; index++) {
+        assert(
+          Date.parse(steps[index].at) >=
+            Date.parse(steps[index - 1].endAt ?? steps[index - 1].at),
+        );
+      }
+      assert(
+        steps.every((step) => Date.parse(step.at) >= Date.parse(at("12:30"))),
+      );
+    }
+  }
 });
 test("sleep-day boundary handles DST and local dates", () => {
   const c = { ...child, timezone: "America/New_York" };

@@ -8,6 +8,7 @@ import {
   type Child,
   type Details,
   type TimerAction,
+  type Strategy,
 } from "../../shared/types";
 import {
   latestBottle,
@@ -20,6 +21,7 @@ import {
 interface QuickActionOptions {
   child?: Child;
   events: Activity[];
+  strategy?: Strategy | null;
   online: boolean;
   onRecord: (input: ActivityInput, message: string) => Promise<void>;
   onTimer: (activity: Activity, action: TimerAction) => Promise<void>;
@@ -29,6 +31,7 @@ interface QuickActionOptions {
 export function useQuickActions({
   child,
   events,
+  strategy,
   online,
   onRecord,
   onTimer,
@@ -48,7 +51,7 @@ export function useQuickActions({
   );
   const bottle = latestBottle(events);
   const side = nextNursingSide(events);
-  const sleepType = child ? sleepTypeNow(child) : "nap";
+  const sleepType = child ? sleepTypeNow(child, new Date(), strategy) : "nap";
 
   async function perform(operation: () => Promise<void>) {
     if (inFlight.current || !child) return;

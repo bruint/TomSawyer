@@ -65,6 +65,10 @@ export default function App() {
   const quickActions = useQuickActions({
     child,
     events: data.loadedChildId === child?.id ? data.events : [],
+    strategy:
+      compare === null && data.loadedChildId === child?.id
+        ? data.strategy
+        : null,
     online,
     onRecord: (input, message) => saveActivity(input, undefined, message),
     onTimer: controlTimer,

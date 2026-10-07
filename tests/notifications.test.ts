@@ -130,6 +130,30 @@ test("short naps, late wakes and missed naps move both reminders to the recalcul
   );
 });
 
+test("automatic count changes recalculate both alerts after a nap without replaying overdue alerts", () => {
+  const automatic: Child = {
+    ...child,
+    birthDate: "2026-06-01",
+    settings: { ...defaultSettings, windDownMinutes: 20 },
+  };
+  const jobs = (events: Activity[], time: string) =>
+    notificationJobs(automatic, events, [], now(time));
+  const firstWind = jobs([wake], "08:40");
+  assert.equal(firstWind.length, 1);
+  assert.equal(firstWind[0].alert, "windDown");
+  assert.equal(firstWind[0].body, "Suggested sleep window: 8:50 AM–9:10 AM.");
+  assert.equal(jobs([wake], "08:50")[0].alert, "sleepWindow");
+  assert.equal(jobs([wake], "11:30").length, 0);
+  const logs = [wake, entry("sleep", "09:00", "09:20")];
+  const nextWind = jobs(logs, "10:25");
+  assert.equal(nextWind.length, 1);
+  assert.equal(nextWind[0].alert, "windDown");
+  assert.equal(nextWind[0].body, "Suggested sleep window: 10:35 AM–10:55 AM.");
+  assert.notEqual(nextWind[0].key, firstWind[0].key);
+  assert.equal(jobs(logs, "10:35")[0].alert, "sleepWindow");
+  assert.equal(jobs(logs, "12:00").length, 0);
+});
+
 test("sleeping, missing wake data and newborns suppress automatic sleep alerts; custom reminders still work", () => {
   const active = { ...entry("sleep", "09:00"), state: "active" as const };
   const newborn = { ...child, birthDate: "2026-09-10" };

@@ -40,7 +40,9 @@ export function StrategyView({
         {compare !== null && (
           <div className="plan-preview-state">
             <span>
-              Preview: {compare} {compare === 1 ? "nap" : "naps"}
+              {compare === strategy.plannedNaps
+                ? `Preview: ${compare} ${compare === 1 ? "nap" : "naps"}`
+                : `${compare} naps unavailable today`}
             </span>
             <button className="text-button" onClick={() => setCompare(null)}>
               Return to live plan
@@ -64,6 +66,37 @@ export function StrategyView({
                   Bed <strong>{time(strategy.bedtime, child.timezone)}</strong>
                 </span>
               )}
+            </div>
+          )}
+          {!!strategy.napOptions?.length && (
+            <div
+              className="nap-options"
+              role="group"
+              aria-label="Nap count and bedtime options"
+            >
+              {strategy.napOptions.map((option) => (
+                <button
+                  type="button"
+                  key={option.napCount}
+                  className={
+                    strategy.plannedNaps === option.napCount ? "selected" : ""
+                  }
+                  aria-pressed={strategy.plannedNaps === option.napCount}
+                  disabled={!option.available}
+                  onClick={() =>
+                    setCompare(option.recommended ? null : option.napCount)
+                  }
+                >
+                  <strong>
+                    {option.napCount} {option.napCount === 1 ? "nap" : "naps"}
+                  </strong>
+                  <span>
+                    {option.bedtime
+                      ? `Bed ${time(option.bedtime, child.timezone)}`
+                      : option.detail}
+                  </span>
+                </button>
+              ))}
             </div>
           )}
         </section>
@@ -117,27 +150,6 @@ export function StrategyView({
               </div>
             ))}
             <p>{strategy.caveat}</p>
-          </div>
-        </details>
-        <details className="disclosure">
-          <summary>Preview nap counts</summary>
-          <div className="nap-options">
-            {Array.from(
-              new Set([
-                Math.max(0, strategy.plannedNaps - 1),
-                strategy.plannedNaps,
-                Math.min(6, strategy.plannedNaps + 1),
-              ]),
-            ).map((n) => (
-              <button
-                className={compare === n ? "selected" : ""}
-                aria-pressed={compare === n}
-                key={n}
-                onClick={() => setCompare(n)}
-              >
-                {n} {n === 1 ? "nap" : "naps"}
-              </button>
-            ))}
           </div>
         </details>
       </div>
