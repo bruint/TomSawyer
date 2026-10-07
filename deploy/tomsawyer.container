@@ -1,0 +1,26 @@
+[Unit]
+Description=TomSawyer family tracker
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=ghcr.io/tomdygo/tomsawyer:latest
+ContainerName=tomsawyer
+PublishPort=127.0.0.1:3100:3000
+Volume=tomsawyer-data.volume:/data
+EnvironmentFile=%h/.config/tomsawyer.env
+ReadOnly=true
+Tmpfs=/tmp:rw,size=64m,mode=1777
+NoNewPrivileges=true
+DropCapability=all
+HealthCmd=node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+HealthInterval=30s
+HealthStartPeriod=20s
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

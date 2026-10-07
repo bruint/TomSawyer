@@ -1,0 +1,4 @@
+# Point this hostname at your server before starting Caddy.
+baby.example.com {
+    reverse_proxy 127.0.0.1:3100
+}

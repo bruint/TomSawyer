@@ -1,0 +1,26 @@
+services:
+  tomsawyer:
+    build: .
+    image: ghcr.io/tomdygo/tomsawyer:latest
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${PORT:-3100}:3000"
+    environment:
+      APP_URL: ${APP_URL:-http://localhost:3100}
+      SETUP_TOKEN: ${SETUP_TOKEN:?Set a random SETUP_TOKEN in .env before starting}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+    volumes:
+      - tomsawyer-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
+
+volumes:
+  tomsawyer-data:

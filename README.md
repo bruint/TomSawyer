@@ -1,0 +1,148 @@
+# TomSawyer
+
+**A little more rest. A plan for the rest.**
+
+A self-hosted, mobile-first baby tracker with a practical sleep strategy for the rest of the day. Built with React, shadcn/ui, TypeScript, Node.js and SQLite. Runs in one Docker or Podman container. No subscriptions, analytics, advertising, or external AI account.
+
+## What you can do
+
+- Track sleep, nursing, bottles and tube feeds, solids, diapers, potty, pumping, medicine, growth, temperature, activities, milestones with photos, contractions, and notes.
+- Start shared timers for sleep, nursing, pumping, activities, and contractions. Pause supported timers; correct or backdate completed entries. Entries show who logged them.
+- Get an explained next sleep window and a plan through bedtime. Short naps, late wakes, and explicit missed naps change the plan immediately. Compare different nap counts without saving changes.
+- Set individual wake windows, nap count, preferred wake/bed times, wind-down lead time, timezone, corrected age, and units for each child.
+- Invite caregivers with separate passwords and single-use invitation links. The family owner manages profiles and access. All caregivers can log and correct activities.
+- See recent history, 7/14/30-day summaries, a week sleep chart, recorded growth, food responses, and milestones. Download complete per-child CSV/JSON exports and preview imports before saving.
+- Set clock or last-activity reminders, weekdays, and daytime-only delivery. Enable Web Push on each device, including installed iPhone/iPad web apps and Android browsers.
+- Install the PWA, use night mode, and queue completed entries offline. Running timer changes require a connection so caregivers do not silently overwrite each other.
+
+## Quick start
+
+Install Docker with Compose, then:
+
+```sh
+git clone https://github.com/tomdygo/TomSawyer.git
+cd TomSawyer
+cp .env.example .env
+```
+
+Edit `.env`: replace `SETUP_TOKEN` with a random value (`openssl rand -hex 24`) and set `APP_URL` to the exact browser origin. Then:
+
+```sh
+docker compose up -d --build
+```
+
+Open **http://localhost:3100**, enter the setup key, and create the first family account. Registration then closes; additional caregivers need an invitation from **Your family → Your crew**. No demo users or baby data are installed.
+
+The default bind address is loopback. Set `BIND_IP=0.0.0.0` only if you want the HTTP port reachable from your network. For phones and Web Push, put the app behind HTTPS and set `APP_URL=https://your-hostname`.
+
+### HTTPS
+
+An example Caddy configuration is in `deploy/Caddyfile.example`. Point your domain to the server, reverse proxy to port 3100, and set the same HTTPS origin in `.env`. Set `TRUST_PROXY=1` only when traffic arrives through one trusted reverse proxy; keep the application port inaccessible from untrusted networks in that case. Cookies become Secure automatically for an HTTPS `APP_URL`.
+
+Web Push needs outbound HTTPS to the device browser's push service. VAPID keys are generated once and stored in the database. Set `VAPID_SUBJECT` to your contact email. Keys survive restarts and backups.
+
+### Podman
+
+`podman compose up -d --build` works when a Compose provider is installed. You can also run directly:
+
+```sh
+podman build -t localhost/tomsawyer .
+podman volume create tomsawyer-data
+podman run -d --name tomsawyer --restart=unless-stopped \
+  -p 127.0.0.1:3100:3000 --env-file .env \
+  -e PORT=3000 -e NODE_ENV=production \
+  -v tomsawyer-data:/data --read-only --tmpfs /tmp:rw,size=64m \
+  --cap-drop=all --security-opt=no-new-privileges \
+  localhost/tomsawyer
+```
+
+For a rootless systemd service, copy `deploy/tomsawyer.container` and `deploy/tomsawyer-data.volume` into `~/.config/containers/systemd/`. Put only `APP_URL`, `SETUP_TOKEN`, `VAPID_SUBJECT`, and `TRUST_PROXY` in `~/.config/tomsawyer.env` (mode 600). Change `Image=` to `localhost/tomsawyer` for a local build. Then:
+
+```sh
+systemctl --user daemon-reload
+systemctl --user start tomsawyer.service
+```
+
+Enable user lingering if your service should start without a login. On SELinux hosts, use `:Z` for a dedicated bind-mounted data directory; never relabel or change ownership of another application's storage.
+
+### Container images
+
+CI tests and builds the app, then publishes `ghcr.io/tomdygo/tomsawyer:latest`, commit tags, and version tags for AMD64 and ARM64. Source builds work independently of image publishing. To use a published image:
+
+```sh
+docker compose pull
+docker compose up -d --no-build
+```
+
+## Installing on your phone
+
+**iPhone/iPad:** In Safari, Share → Add to Home Screen. Open the installed app, sign in, then choose **Your family → Notifications → Enable notifications**. Web Push requires iOS/iPadOS 16.4 or later and HTTPS.
+
+**Android:** Open the HTTPS site in Chrome, install the app from the browser menu, and enable notifications in Family settings.
+
+Use **Send a test** to check the device. Permission, Focus mode, battery restrictions, internet connectivity, and browser push delivery can affect timing. Reminders are not appropriate for critical alarms. Clock reminders are evaluated every 30 seconds with a five-minute catch-up window; older reminders are deliberately not replayed after a long outage.
+
+## Sleep planning
+
+The planner is an inspectable scheduling heuristic. It uses corrected age for its editable starting defaults, the morning wake, actual completed naps, a running sleep, missed nap attempts, and family preferences. It gives each adjustment a reason. Later steps are tentative, and logging new information recalculates the whole remaining day.
+
+The planner does **not** implement a clinically validated prediction model or an AI sleep consultant. Under two months corrected age it shows responsive-care guidance rather than timed predictions. It does not recommend delaying feeds, calculate medicine doses, diagnose allergies, or derive growth percentiles. Follow your child's cues and your clinician's guidance. All clinical fields record caregiver observations.
+
+## Your data
+
+The `/data` volume contains the SQLite database, sessions, photos, invites, and notification signing keys. Keep it persistent. One app replica per database is supported; do not put SQLite on NFS or run multiple writers against a copied database.
+
+### Backup and restore
+
+Create a consistent SQLite snapshot while the app is running:
+
+```sh
+docker compose exec tomsawyer node dist/server/server/admin.js backup /data/backup.db
+docker compose cp tomsawyer:/data/backup.db ./backup.db
+```
+
+The backup command refuses to overwrite an existing file; use a fresh filename for each backup. Protect backups as private family data. Copy them off the host.
+
+To restore, stop the app and take a backup of the current volume. Replace `/data/tomsawyer.db` with the snapshot, remove only that database's stale `-wal` and `-shm` files while stopped, and preserve permissions for container UID 1000. Restart the app. Do not replace a live database. Container volume inspection/copy commands vary between Docker and rootless Podman.
+
+### Password recovery
+
+An owner can change their own password in the app. A server administrator can reset an existing account without configuring email:
+
+```sh
+docker compose exec -it tomsawyer node dist/server/server/admin.js reset-password you@example.com
+```
+
+The new password is entered into a hidden prompt, not a command argument. Existing sessions for that user are revoked.
+
+### Import and export
+
+Use **Your family → Data & account**. JSON exports round-trip the activity records; they are not a replacement for a full database backup. CSV imports accept `kind`/`type`, `startedAt`/`start`, `endedAt`/`end`, notes, and optional JSON details. Unmapped fields are preserved in notes, not silently interpreted as medical measurements. Review the preview; an invalid or overlapping entry rolls back the whole import. Repeated record IDs are skipped. Generic third-party CSV compatibility depends on the source column names and date formats; this is not a claim of universal compatibility.
+
+Photos are available only to authenticated members of their family. Image metadata is stripped on upload. Referenced photos are removed when their last entry is deleted. Browser-local caches contain private recent logs; sign out on shared devices to clear them. Pending offline entries must be synced or downloaded/discarded before signing out.
+
+## Development
+
+Node.js 22.13+ is required (Node 24 recommended).
+
+```sh
+npm ci
+npm run dev
+npm test
+npm run build
+APP_URL=http://localhost:3000 npm start
+```
+
+The development UI runs at http://localhost:5173 with an API proxy to port 3000. The production build is served by Node alone. The development database is `data/tomsawyer.db`. Override it with `DATABASE_PATH`.
+
+For a separate synthetic demo, set a `DEMO_PASSWORD` and `DATABASE_PATH=.local/preview.db`, then run `npm run seed:demo`. Demo seeding refuses a non-empty database or production mode. Never publish a demo database with real family records.
+
+Core files: `server/strategy.ts` (planner), `server/app.ts` (authorized API), `server/push.ts` (reminder worker), `shared/types.ts` (model), and `src/components/` (UI). The shadcn/ui components are local and customizable. Tests exercise real API workflows, account boundaries, concurrent edits, timer conflicts, CSV parsing, timezone boundaries, and planner scenarios.
+
+## Current boundaries
+
+This release has web-app notifications and installation, not native Apple Watch, Siri, lock-screen widgets, or Live Activities. It records milestones without a developmental assessment catalogue and growth without reference percentiles. It has no voice/photo-to-log AI, general parenting chatbot, clinical sleep programme, or medication decision support. History in the UI covers the latest 90 days; exports retain the full history. Offline mode caches that recent history and queues completed entries, with visible conflict handling on reconnect.
+
+## Licence
+
+AGPL-3.0-only. See `LICENSE`. UI primitives and third-party dependencies retain their own licences; see `THIRD_PARTY_NOTICES.md` and their packages.
