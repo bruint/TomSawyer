@@ -90,6 +90,8 @@ The app does not need to stay open. Use **Send a test** in Settings to check del
 
 While a nap is running, the strategy shows **If they wake now**. Sleep so far, the next wake window, remaining naps, and bedtime are recalculated every 15 seconds while the app is visible and connected. The actual timer stays ongoing until a caregiver ends it. Journal opens on today in the child’s timezone; use the day arrows, date picker, or All recent entries to reach older logs.
 
+On your phone, pull down at the top of a screen and release to refresh family data, logs, and the sleep plan. Journal filters and unsaved settings stay in place.
+
 ## Quick logging
 
 The bottom quick-action bar stays available for the selected child. Sleep and nursing start immediately and turn into stop buttons while their timers run. Wet and dirty diaper buttons record the current time. Bottle repeats the amount shown on its button; use **More → Bottle amount** to choose another preset or enter a custom amount. With no previous bottle, the amount picker opens first.
@@ -165,7 +167,7 @@ Code is grouped by responsibility:
 - `server/activities.ts` shares activity insertion and overlap rules between logging and imports. `server/strategy/` separates sleep-day context, routine defaults, and schedule comparison; `server/strategy.ts` presents the selected plan. `server/push.ts` runs reminders using the same planner and history.
 - `shared/types.ts` defines the client/server data contracts.
 
-The shadcn/ui components are local and customizable. Tests cover API workflows, account boundaries, concurrent edits, timers, CSV parsing, timezone boundaries, planner scenarios, and offline-entry isolation.
+The shadcn/ui components are local and customizable. Tests cover API workflows, account boundaries, concurrent edits, timers, CSV parsing, timezone boundaries, planner scenarios, offline-entry isolation, and refresh gestures.
 
 ## Current boundaries
 

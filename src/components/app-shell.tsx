@@ -13,6 +13,7 @@ import type { Bootstrap, Child } from "../../shared/types";
 import { age } from "../lib/format";
 import { navigation, type Page } from "../lib/navigation";
 import { Boat } from "./brand";
+import { PullToRefresh } from "./pull-to-refresh";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -32,6 +33,8 @@ interface AppShellProps {
   onSelectChild: (id: string) => void;
   onAddChild: () => void;
   onLogout: () => Promise<void>;
+  onRefresh: () => Promise<void>;
+  refreshDisabled?: boolean;
   children: ReactNode;
   quickActions?: ReactNode;
 }
@@ -47,6 +50,8 @@ export function AppShell({
   onSelectChild,
   onAddChild,
   onLogout,
+  onRefresh,
+  refreshDisabled = false,
   children,
   quickActions,
 }: AppShellProps) {
@@ -183,7 +188,13 @@ export function AppShell({
             </Button>
           </div>
         </header>
-        <main className="main-content">{children}</main>
+        <PullToRefresh
+          onRefresh={onRefresh}
+          scope={`${bootstrap.user.id}:${child?.id || ""}:${page}`}
+          disabled={refreshDisabled || mobileMenu}
+        >
+          <main className="main-content">{children}</main>
+        </PullToRefresh>
       </div>
       <div
         className={`bottom-dock ${quickActions ? "with-quick-actions" : ""}`}

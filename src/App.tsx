@@ -234,6 +234,8 @@ export default function App() {
         onSelectChild={selectChild}
         onAddChild={() => setChildDialog("new")}
         onLogout={signOut}
+        onRefresh={refreshFamily}
+        refreshDisabled={Boolean(log || childDialog || quickActions.sheet)}
         quickActions={
           child && data.loadedChildId === child.id ? (
             <QuickActionToolbar actions={quickActions} />

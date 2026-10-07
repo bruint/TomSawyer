@@ -1,0 +1,47 @@
+html:has(.pull-to-refresh) {
+  overscroll-behavior-y: contain;
+}
+
+.pull-to-refresh {
+  position: relative;
+  overflow-anchor: none;
+  transition: padding-top 180ms ease;
+}
+
+.pull-to-refresh.is-pulling {
+  transition: none;
+  user-select: none;
+}
+
+.pull-to-refresh-indicator {
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 650;
+  pointer-events: none;
+}
+
+.pull-to-refresh-indicator > svg {
+  flex-shrink: 0;
+  transition: transform 150ms ease;
+}
+
+.pull-to-refresh-indicator.is-ready > svg {
+  transform: rotate(180deg);
+}
+
+.pull-to-refresh-spinner {
+  animation: pull-to-refresh-spin 900ms linear infinite;
+}
+
+@keyframes pull-to-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
