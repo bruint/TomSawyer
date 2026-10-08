@@ -8,6 +8,7 @@ import { PageHeader } from "./page-header";
 import { Button } from "./ui/button";
 import { Select } from "./ui/field";
 import { Input } from "./ui/input";
+import { trackerEnabled } from "../../shared/tracking";
 
 export function HistoryView({
   child,
@@ -30,6 +31,7 @@ export function HistoryView({
     : DateTime.now().setZone(child.timezone);
   const filtered = history.entries.filter(
     (a) =>
+      trackerEnabled(child, a.kind) &&
       (kind === "all" || a.kind === kind) &&
       JSON.stringify([kindLabels[a.kind], a.notes, a.details, a.authorName])
         .toLowerCase()
@@ -64,11 +66,15 @@ export function HistoryView({
             onChange={(e) => setKind(e.target.value)}
           >
             <option value="all">All activities</option>
-            {Object.entries(kindLabels).map(([k, v]) => (
-              <option value={k} key={k}>
-                {v}
-              </option>
-            ))}
+            {Object.entries(kindLabels)
+              .filter(([kind]) =>
+                trackerEnabled(child, kind as Activity["kind"]),
+              )
+              .map(([k, v]) => (
+                <option value={k} key={k}>
+                  {v}
+                </option>
+              ))}
           </Select>
           <div className="journal-date-controls">
             <Button

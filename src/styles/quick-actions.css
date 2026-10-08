@@ -52,8 +52,20 @@
 .night-actions button:disabled {
   opacity: 0.45;
 }
-.has-quick-actions:has(.night-actions) .main-content {
-  padding-bottom: 180px;
+.sleep-only .quick-action {
+  min-height: 56px;
+}
+.sleep-only .quick-action:first-child {
+  flex-direction: row;
+  gap: 12px;
+  padding: 8px 16px;
+}
+.sleep-only .quick-action:first-child strong {
+  font-size: 14px;
+}
+.sleep-only .quick-action:first-child .quick-action-detail {
+  margin-left: auto;
+  font-size: 13px;
 }
 .quick-action {
   display: flex;
@@ -92,9 +104,6 @@
 }
 .quick-action:disabled {
   opacity: 0.45;
-}
-.has-quick-actions .main-content {
-  padding-bottom: 125px;
 }
 .quick-action-sheet {
   width: min(560px, calc(100vw - 32px));
@@ -207,12 +216,6 @@
   }
   .has-quick-actions .workspace {
     padding-bottom: 0;
-  }
-  .has-quick-actions .main-content {
-    padding-bottom: calc(182px + env(safe-area-inset-bottom));
-  }
-  .has-quick-actions:has(.night-actions) .main-content {
-    padding-bottom: calc(237px + env(safe-area-inset-bottom));
   }
   .quick-action-sheet {
     top: auto;

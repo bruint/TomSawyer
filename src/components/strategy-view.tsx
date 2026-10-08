@@ -1,4 +1,4 @@
-import { CloudMoon } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import type { ActivityKind, Child, Strategy } from "../../shared/types";
 import { duration, time } from "../lib/format";
 import { PageHeader } from "./page-header";
@@ -8,11 +8,10 @@ import { Button } from "./ui/button";
 export function StrategyView({
   child,
   strategy,
-  onLog,
-  quickBusy,
   compare,
   setCompare,
   online,
+  onCoach,
 }: {
   child: Child;
   strategy: Strategy | null;
@@ -21,6 +20,7 @@ export function StrategyView({
   compare: number | null;
   setCompare: (n: number | null) => void;
   online: boolean;
+  onCoach?: () => void;
 }) {
   if (!strategy) return <div className="loading">Loading plan…</div>;
   return (
@@ -29,15 +29,15 @@ export function StrategyView({
         child={child}
         title="Your strategy"
         action={
-          strategy.status !== "night" &&
-          strategy.status !== "sleeping" && (
+          onCoach && (
             <Button
               variant="outline"
-              disabled={quickBusy}
-              onClick={() => onLog("skipped_nap")}
+              className="coach-trigger"
+              aria-label="Ask sleep coach"
+              onClick={onCoach}
             >
-              <CloudMoon />
-              Missed nap
+              <MessageCircle />
+              Ask coach
             </Button>
           )
         }

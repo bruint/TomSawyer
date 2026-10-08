@@ -176,7 +176,7 @@ export function RoutineSettings({
       </section>
       <div>
         <section className="settings-section">
-          <h2>Home screen trackers</h2>
+          <h2>Trackers</h2>
           <div className="tracker-toggles">
             {activityKinds
               .filter((k) => !["wake", "skipped_nap"].includes(k))
@@ -208,7 +208,7 @@ export function RoutineSettings({
             disabled={!owner || saving}
             onClick={saveRoutine}
           >
-            Save home screen
+            Save trackers
           </Button>
         </section>
         <section className="settings-section appearance-card">

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   kindLabels,
@@ -18,6 +18,7 @@ import {
   type BottlePreset,
 } from "../lib/quick-actions";
 import { nightSleepState } from "../../shared/night-sleep";
+import { trackerEnabled } from "../../shared/tracking";
 
 interface QuickActionOptions {
   child?: Child;
@@ -41,23 +42,30 @@ export function useQuickActions({
   const [sheet, setSheet] = useState<"more" | "bottle" | null>(null);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
-  const sleep = events.find(
+  const enabled = (kind: ActivityKind) => trackerEnabled(child, kind);
+  const visibleEvents = events.filter((activity) => enabled(activity.kind));
+  const sleep = visibleEvents.find(
     (activity) => activity.kind === "sleep" && activity.state !== "complete",
   );
-  const nursing = events.find(
+  const nursing = visibleEvents.find(
     (activity) => activity.kind === "nursing" && activity.state !== "complete",
   );
-  const pumping = events.find(
+  const pumping = visibleEvents.find(
     (activity) => activity.kind === "pumping" && activity.state !== "complete",
   );
   const bottle = latestBottle(events);
   const side = nextNursingSide(events);
-  const night = nightSleepState(events);
+  const night = nightSleepState(visibleEvents);
   const sleepType = night
     ? "night"
     : child
       ? sleepTypeNow(child, new Date(), strategy)
       : "nap";
+
+  const bottleEnabled = enabled("bottle");
+  useEffect(() => {
+    if (sheet === "bottle" && !bottleEnabled) setSheet(null);
+  }, [sheet, bottleEnabled]);
 
   async function perform(operation: () => Promise<void>) {
     if (inFlight.current || !child) return;
@@ -80,6 +88,7 @@ export function useQuickActions({
     message: string,
     timed = false,
   ) {
+    if (!enabled(kind)) return;
     if (timed && !online) {
       toast.error("Reconnect to start a timer.");
       return;
@@ -108,6 +117,7 @@ export function useQuickActions({
   }
 
   function startSleep(type = sleepType) {
+    if (!enabled("sleep")) return;
     if (night?.phase === "awake" && type === "night") {
       if (!online) {
         toast.error("Reconnect to start a timer.");
@@ -126,6 +136,7 @@ export function useQuickActions({
   }
 
   function upForDay() {
+    if (!enabled("sleep")) return;
     if (night) {
       if (!online) {
         toast.error("Reconnect to finish night sleep.");
@@ -139,6 +150,7 @@ export function useQuickActions({
   }
 
   function nurse(nextSide = side) {
+    if (!enabled("nursing")) return;
     if (nursing) return finish(nursing);
     return record(
       "nursing",
@@ -167,11 +179,13 @@ export function useQuickActions({
   }
 
   function details(kind: ActivityKind) {
+    if (!enabled(kind)) return;
     setSheet(null);
     onDetails(kind);
   }
 
   function activate(kind: ActivityKind) {
+    if (!enabled(kind)) return;
     switch (kind) {
       case "sleep":
         return startSleep();
@@ -240,6 +254,8 @@ export function useQuickActions({
     side,
     sleepType,
     online,
+    enabled,
+    trackers: child?.settings.visibleTrackers || [],
     activate,
     label,
     startSleep,

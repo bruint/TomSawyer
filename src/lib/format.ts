@@ -7,6 +7,10 @@ export function duration(minutes: number) {
     m = Math.round(minutes % 60);
   return [h ? `${h}h` : "", m ? `${m}m` : ""].filter(Boolean).join(" ") || "0m";
 }
+export function timerDuration(milliseconds: number) {
+  const minutes = Math.floor(Math.max(0, milliseconds) / 60000);
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
 export const time = (iso: string | null | undefined, zone: string) =>
   iso
     ? DateTime.fromISO(iso).setZone(zone).toFormat("h:mm a").toLowerCase()

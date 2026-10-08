@@ -1,0 +1,153 @@
+.page-heading > .coach-trigger {
+  width: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  gap: 7px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.coach-dialog {
+  width: min(600px, calc(100vw - 40px));
+  height: min(760px, calc(100dvh - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 24px;
+}
+.coach-dialog .dialog-header {
+  flex-shrink: 0;
+  margin-bottom: 0;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.coach-dialog .dialog-header p {
+  font-size: 13px;
+}
+.coach-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 0;
+}
+.coach-start {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 16px 0;
+}
+.coach-start > svg,
+.coach-status {
+  color: var(--muted);
+}
+.coach-start h3 {
+  margin: 0;
+  font-size: 19px;
+}
+.coach-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.coach-prompts button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--foreground);
+  font-size: 13px;
+}
+.coach-prompts button:disabled {
+  opacity: 0.5;
+}
+.coach-turn {
+  margin-bottom: 28px;
+}
+.coach-question {
+  width: fit-content;
+  max-width: 90%;
+  margin: 0 0 20px auto;
+  padding: 12px 16px;
+  border-radius: 16px 16px 3px 16px;
+  background: var(--sage);
+  color: var(--foreground);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.coach-answer {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.coach-time {
+  display: block;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.coach-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+}
+.coach-compose {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.coach-compose form {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.coach-compose textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 68px;
+  max-height: 160px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 16px;
+}
+.coach-compose textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.coach-compose textarea:disabled {
+  opacity: 0.5;
+}
+.coach-compose form > button {
+  min-width: 44px;
+  min-height: 44px;
+  margin-bottom: 2px;
+}
+.coach-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  .coach-dialog {
+    inset: 0;
+    transform: none;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: max(20px, env(safe-area-inset-top)) 18px
+      max(16px, env(safe-area-inset-bottom));
+  }
+}

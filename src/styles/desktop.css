@@ -21,7 +21,7 @@
     width: calc(100% - 205px);
   }
   .main-content {
-    padding: 27px;
+    padding: 27px 27px calc(var(--dock-height, 0px) + 24px);
   }
   .topbar {
     padding: 0 27px;

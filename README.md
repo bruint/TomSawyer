@@ -6,7 +6,7 @@ The reason I didn't like Huckleberry is basically because it doesn't really give
 
 **A little more rest. A plan for the rest.**
 
-A self-hosted, mobile-first baby tracker with a practical sleep strategy for the rest of the day. Built with React, shadcn/ui, TypeScript, Node.js and SQLite. Runs in one Docker or Podman container. No subscriptions, analytics, advertising, or external AI account.
+A self-hosted, mobile-first baby tracker with a practical sleep strategy for the rest of the day. Built with React, shadcn/ui, TypeScript, Node.js and SQLite. Runs in one Docker or Podman container. The planner works without an AI account; an optional sleep coach uses your existing OpenAI-compatible connection. No analytics or advertising.
 
 ## What you can do
 
@@ -60,7 +60,7 @@ podman run -d --name tomsawyer --restart=unless-stopped \
   localhost/tomsawyer
 ```
 
-For a rootless systemd service, copy `deploy/tomsawyer.container` and `deploy/tomsawyer-data.volume` into `~/.config/containers/systemd/`. Put only `APP_URL`, `SETUP_TOKEN`, `VAPID_SUBJECT`, and `TRUST_PROXY` in `~/.config/tomsawyer.env` (mode 600). Change `Image=` to `localhost/tomsawyer` for a local build. Then:
+For a rootless systemd service, copy `deploy/tomsawyer.container` and `deploy/tomsawyer-data.volume` into `~/.config/containers/systemd/`. Put `APP_URL`, `SETUP_TOKEN`, `VAPID_SUBJECT`, and `TRUST_PROXY` in `~/.config/tomsawyer.env` (mode 600), plus the optional coach variables described below. Change `Image=` to `localhost/tomsawyer` for a local build. Then:
 
 ```sh
 systemctl --user daemon-reload
@@ -100,7 +100,9 @@ On your phone, pull down at the top of a screen and release to refresh family da
 
 ## Quick logging
 
-The bottom quick-action bar stays available for the selected child. Sleep and nursing start immediately and turn into stop buttons while their timers run. Wet and dirty diaper buttons record the current time. Bottle repeats the amount shown on its button; use **More → Bottle amount** to choose another preset or enter a custom amount. With no previous bottle, the amount picker opens first.
+The bottom quick-action bar stays available for the selected child and follows **Family → Sleep & trackers → Trackers**. Disabled trackers disappear from shortcuts, running timers, journal categories, and reports. With only Sleep enabled, the bar contains the sleep action and More. Existing entries remain saved. Timers show hours and minutes, including overnight durations longer than 24 hours.
+
+Sleep and nursing start immediately and turn into stop buttons while their timers run. Wet and dirty diaper buttons record the current time. Bottle repeats the amount shown on its button; use **More → Bottle amount** to choose another preset or enter a custom amount. With no previous bottle, the amount picker opens first.
 
 Near the live plan's next sleep time, Sleep chooses nap or night sleep from that plan, including an earlier bedtime or later nap. Otherwise it uses the child's usual clock. Previewing another count does not change the quick action.
 
@@ -114,7 +116,23 @@ Today and Strategy show the same next-sleep target and bedtime. A nap preview st
 
 Usual bedtime is a starting point. An earlier wake, short naps, a late morning, or a long current nap can move it earlier or later. The last nap can be a full nap or a shorter bridge nap. Counts that would run too far into the night are marked unavailable, rather than silently dropping a nap while displaying the wrong count. Later steps remain tentative, and new logs recalculate the remaining day.
 
-The planner does **not** implement a clinically validated prediction model or an AI sleep consultant. Under two months corrected age it shows responsive-care guidance rather than timed predictions. It does not recommend delaying feeds, calculate medicine doses, diagnose allergies, or derive growth percentiles. Follow your child's cues and your clinician's guidance. All clinical fields record caregiver observations.
+The planner does **not** implement a clinically validated prediction model. Under two months corrected age it shows responsive-care guidance rather than timed predictions. It does not recommend delaying feeds, calculate medicine doses, diagnose allergies, or derive growth percentiles. Follow your child's cues and your clinician's guidance. All clinical fields record caregiver observations.
+
+## Sleep coach
+
+Tap **Ask coach** on Today or Strategy. You can ask a question or use What now?, Short nap, and Late wake. Each question sends a fresh snapshot of the selected child's age, corrected age when applicable, local time, current sleep or overnight wake, enabled tracker entries, recent naps, routine, and live plan. The coach always uses the live recommendation, including while you preview another nap count. Replies are advice; they do not change logs, settings, or reminders.
+
+Configure these variables on the server, in Compose's `.env` or the Quadlet environment file:
+
+```dotenv
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=your-chat-model
+OPENAI_API_KEY=your-provider-key
+```
+
+The integration uses the standard [OpenAI Chat Completions API](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create). An existing compatible gateway can replace the URL and model. The credential stays on the server; it is never sent to the browser. Leave the URL and model blank to disable the coach. The normal planner and sleep reminders work independently.
+
+Conversations are stored in the app database separately for each signed-in caregiver and child. Only that caregiver can read their conversation. Requests require the same family session and request protection as logging; retries with the same question ID return the saved answer. Child deletion removes its conversations. Database backups include conversations; activity CSV/JSON exports contain activity logs only.
 
 ## Your data
 

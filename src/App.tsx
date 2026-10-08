@@ -23,6 +23,7 @@ import { SettingsView } from "./components/settings";
 import { ChildDialog } from "./components/settings/child-dialog";
 import { StrategyView } from "./components/strategy-view";
 import { SyncStatus } from "./components/sync-status";
+import { SleepCoach } from "./components/sleep-coach";
 import { Button } from "./components/ui/button";
 import { useChildData } from "./hooks/use-child-data";
 import { useAppInstall } from "./hooks/use-app-install";
@@ -54,6 +55,8 @@ export default function App() {
     entry?: Activity;
   } | null>(null);
   const [childDialog, setChildDialog] = useState<"new" | "edit" | null>(null);
+  const [coachOpen, setCoachOpen] = useState(false);
+  useEffect(() => setCoachOpen(false), [child?.id, bootstrap?.user.id]);
   const data = useChildData({
     child,
     user: bootstrap?.user,
@@ -237,9 +240,13 @@ export default function App() {
         onAddChild={() => setChildDialog("new")}
         onLogout={signOut}
         onRefresh={refreshFamily}
-        refreshDisabled={Boolean(log || childDialog || quickActions.sheet)}
+        refreshDisabled={Boolean(
+          log || childDialog || quickActions.sheet || coachOpen,
+        )}
         quickActions={
-          child && data.loadedChildId === child.id ? (
+          child &&
+          data.loadedChildId === child.id &&
+          child.settings.visibleTrackers.length > 0 ? (
             <QuickActionToolbar actions={quickActions} />
           ) : undefined
         }
@@ -287,6 +294,7 @@ export default function App() {
                 compare={compare}
                 setCompare={setCompare}
                 online={online}
+                onCoach={() => setCoachOpen(true)}
               />
             )}
             {page === "strategy" && (
@@ -298,6 +306,7 @@ export default function App() {
                 compare={compare}
                 setCompare={setCompare}
                 online={online}
+                onCoach={() => setCoachOpen(true)}
               />
             )}
             {page === "history" && (
@@ -306,7 +315,9 @@ export default function App() {
                 child={child}
                 events={data.events}
                 onEdit={editActivity}
-                onLog={() => setLog({ kind: "sleep" })}
+                onLog={() =>
+                  setLog({ kind: child.settings.visibleTrackers[0] || "sleep" })
+                }
               />
             )}
             {page === "reports" && (
@@ -343,6 +354,14 @@ export default function App() {
           onDelete={deleteActivity}
         />
       )}
+      {coachOpen && child && (
+        <SleepCoach
+          key={`${bootstrap.user.id}:${child.id}`}
+          child={child}
+          online={online}
+          onClose={() => setCoachOpen(false)}
+        />
+      )}
       {childDialog && (
         <ChildDialog
           child={childDialog === "edit" ? child : undefined}
@@ -350,14 +369,19 @@ export default function App() {
           onSaved={refreshFamily}
         />
       )}
-      {child && online && !childDialog && !log && !quickActions.sheet && (
-        <DeviceOnboarding
-          key={`${bootstrap.user.id}:${installation.standalone}`}
-          userId={bootstrap.user.id}
-          installation={installation}
-          push={push}
-        />
-      )}
+      {child &&
+        online &&
+        !childDialog &&
+        !log &&
+        !quickActions.sheet &&
+        !coachOpen && (
+          <DeviceOnboarding
+            key={`${bootstrap.user.id}:${installation.standalone}`}
+            userId={bootstrap.user.id}
+            installation={installation}
+            push={push}
+          />
+        )}
     </>
   );
 }

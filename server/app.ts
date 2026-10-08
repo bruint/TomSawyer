@@ -15,6 +15,8 @@ import { createDataRouter } from "./routes/data.js";
 import { createFamilyRouter } from "./routes/family.js";
 import { createNotificationRouter } from "./routes/notifications.js";
 import { createPhotoRouter } from "./routes/photos.js";
+import { createCoachClient, type CoachClient } from "./coach/client.js";
+import { createCoachRouter } from "./routes/coach.js";
 
 export function createApp(
   db: DB,
@@ -24,6 +26,7 @@ export function createApp(
     appUrl?: string;
     staticDir?: string;
     rateLimits?: boolean;
+    coach?: CoachClient;
   } = {},
 ) {
   const app = express();
@@ -105,6 +108,14 @@ export function createApp(
   app.use("/api", createAccountRouter(db, secure));
   app.use("/api", createFamilyRouter(db, { appUrl, publicKey }));
   app.use("/api", createChildRouter(db));
+  app.use(
+    "/api",
+    createCoachRouter(
+      db,
+      options.coach || createCoachClient(),
+      options.rateLimits !== false,
+    ),
+  );
   app.use("/api", createActivityRouter(db));
   app.use("/api", createNotificationRouter(db));
   app.use("/api", createPhotoRouter(db));

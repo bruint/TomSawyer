@@ -83,6 +83,8 @@ export function QuickActionSheet({
   child: Child;
   actions: QuickActionsController;
 }) {
+  const { enabled } = actions;
+  const visibleOtherTrackers = otherTrackers.filter(enabled);
   return (
     <Dialog
       open={actions.sheet !== null}
@@ -104,21 +106,23 @@ export function QuickActionSheet({
         ) : (
           <>
             <div className="quick-choice-grid">
-              <button
-                type="button"
-                disabled={actions.busy || !actions.online}
-                onClick={() =>
-                  void actions.startSleep(actions.night ? "night" : "nap")
-                }
-              >
-                <Moon />
-                {actions.night
-                  ? actions.label("sleep")
-                  : actions.sleep
-                    ? "Wake up"
-                    : "Start nap"}
-              </button>
-              {!actions.sleep && !actions.night && (
+              {enabled("sleep") && (
+                <button
+                  type="button"
+                  disabled={actions.busy || !actions.online}
+                  onClick={() =>
+                    void actions.startSleep(actions.night ? "night" : "nap")
+                  }
+                >
+                  <Moon />
+                  {actions.night
+                    ? actions.label("sleep")
+                    : actions.sleep
+                      ? "Wake up"
+                      : "Start nap"}
+                </button>
+              )}
+              {enabled("sleep") && !actions.sleep && !actions.night && (
                 <button
                   type="button"
                   disabled={actions.busy || !actions.online}
@@ -128,15 +132,17 @@ export function QuickActionSheet({
                   Night sleep
                 </button>
               )}
-              <button
-                type="button"
-                disabled={actions.busy || !actions.online}
-                onClick={() => void actions.nurse("Left")}
-              >
-                <ActivityIcon kind="nursing" />
-                {actions.nursing ? "Stop nursing" : "Nurse left"}
-              </button>
-              {!actions.nursing && (
+              {enabled("nursing") && (
+                <button
+                  type="button"
+                  disabled={actions.busy || !actions.online}
+                  onClick={() => void actions.nurse("Left")}
+                >
+                  <ActivityIcon kind="nursing" />
+                  {actions.nursing ? "Stop nursing" : "Nurse left"}
+                </button>
+              )}
+              {enabled("nursing") && !actions.nursing && (
                 <button
                   type="button"
                   disabled={actions.busy || !actions.online}
@@ -146,72 +152,84 @@ export function QuickActionSheet({
                   Nurse right
                 </button>
               )}
-              <button
-                type="button"
-                disabled={actions.busy}
-                onClick={() => actions.setSheet("bottle")}
-              >
-                <Milk />
-                Bottle amount
-              </button>
-              <button
-                type="button"
-                disabled={actions.busy}
-                onClick={() => void actions.diaper("Mixed")}
-              >
-                <Droplets />
-                Wet + dirty
-              </button>
-              <button
-                type="button"
-                disabled={actions.busy || !actions.online}
-                onClick={() => void actions.activate("pumping")}
-              >
-                <ActivityIcon kind="pumping" />
-                {actions.pumping ? "Stop pumping" : "Start pumping"}
-              </button>
-              <button
-                type="button"
-                disabled={
-                  actions.busy ||
-                  ((!!actions.sleep || !!actions.night) && !actions.online)
-                }
-                onClick={() => void actions.activate("wake")}
-              >
-                <Sunrise />
-                {actions.night
-                  ? "Up for the day"
-                  : actions.sleep
-                    ? "Wake up"
-                    : "Morning wake"}
-              </button>
-              <button
-                type="button"
-                disabled={actions.busy || !!actions.sleep || !!actions.night}
-                onClick={() => void actions.activate("skipped_nap")}
-              >
-                <ActivityIcon kind="skipped_nap" />
-                Missed nap
-              </button>
-            </div>
-            <div className="quick-other-trackers">
-              {otherTrackers.map((kind) => (
+              {enabled("bottle") && (
                 <button
                   type="button"
-                  key={kind}
                   disabled={actions.busy}
-                  onClick={() => actions.details(kind)}
+                  onClick={() => actions.setSheet("bottle")}
                 >
-                  <ActivityIcon kind={kind} size={19} />
-                  {kindLabels[kind]}
+                  <Milk />
+                  Bottle amount
                 </button>
-              ))}
+              )}
+              {enabled("diaper") && (
+                <button
+                  type="button"
+                  disabled={actions.busy}
+                  onClick={() => void actions.diaper("Mixed")}
+                >
+                  <Droplets />
+                  Wet + dirty
+                </button>
+              )}
+              {enabled("pumping") && (
+                <button
+                  type="button"
+                  disabled={actions.busy || !actions.online}
+                  onClick={() => void actions.activate("pumping")}
+                >
+                  <ActivityIcon kind="pumping" />
+                  {actions.pumping ? "Stop pumping" : "Start pumping"}
+                </button>
+              )}
+              {enabled("sleep") && (
+                <button
+                  type="button"
+                  disabled={
+                    actions.busy ||
+                    ((!!actions.sleep || !!actions.night) && !actions.online)
+                  }
+                  onClick={() => void actions.activate("wake")}
+                >
+                  <Sunrise />
+                  {actions.night
+                    ? "Up for the day"
+                    : actions.sleep
+                      ? "Wake up"
+                      : "Morning wake"}
+                </button>
+              )}
+              {enabled("sleep") && (
+                <button
+                  type="button"
+                  disabled={actions.busy || !!actions.sleep || !!actions.night}
+                  onClick={() => void actions.activate("skipped_nap")}
+                >
+                  <ActivityIcon kind="skipped_nap" />
+                  Missed nap
+                </button>
+              )}
             </div>
+            {visibleOtherTrackers.length > 0 && (
+              <div className="quick-other-trackers">
+                {visibleOtherTrackers.map((kind) => (
+                  <button
+                    type="button"
+                    key={kind}
+                    disabled={actions.busy}
+                    onClick={() => actions.details(kind)}
+                  >
+                    <ActivityIcon kind={kind} size={19} />
+                    {kindLabels[kind]}
+                  </button>
+                ))}
+              </div>
+            )}
             <Button
               variant="outline"
               className="full-width"
               disabled={actions.busy}
-              onClick={() => actions.details("sleep")}
+              onClick={() => actions.details(child.settings.visibleTrackers[0])}
             >
               <Clock3 />
               Earlier entry / add details

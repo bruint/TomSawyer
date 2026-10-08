@@ -8,7 +8,7 @@ import {
   Settings2,
   X,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Bootstrap, Child } from "../../shared/types";
 import { age } from "../lib/format";
 import { navigation, type Page } from "../lib/navigation";
@@ -56,12 +56,28 @@ export function AppShell({
   quickActions,
 }: AppShellProps) {
   const [mobileMenu, setMobileMenu] = useState(false);
+  const shell = useRef<HTMLDivElement>(null);
+  const dock = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!dock.current) return;
+    const observer = new ResizeObserver(([entry]) => {
+      shell.current?.style.setProperty(
+        "--dock-height",
+        `${entry.target.getBoundingClientRect().height}px`,
+      );
+    });
+    observer.observe(dock.current);
+    return () => observer.disconnect();
+  }, []);
   function navigateTo(next: Page) {
     setMobileMenu(false);
     onNavigate(next);
   }
   return (
-    <div className={`app-shell ${quickActions ? "has-quick-actions" : ""}`}>
+    <div
+      ref={shell}
+      className={`app-shell ${quickActions ? "has-quick-actions" : ""}`}
+    >
       <aside className={`sidebar ${mobileMenu ? "open" : ""}`}>
         <button className="brand" onClick={() => navigateTo("today")}>
           <Boat />
@@ -197,6 +213,7 @@ export function AppShell({
         </PullToRefresh>
       </div>
       <div
+        ref={dock}
         className={`bottom-dock ${quickActions ? "with-quick-actions" : ""}`}
       >
         {quickActions}

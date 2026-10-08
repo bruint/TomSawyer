@@ -13,7 +13,7 @@
 }
 .report-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
   margin-bottom: 23px;
 }
@@ -141,6 +141,12 @@
   grid-template-columns: 1fr 1fr;
   gap: 23px;
   margin-top: 23px;
+}
+.report-grid:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+.report-grid:empty {
+  display: none;
 }
 .data-table {
   width: 100%;

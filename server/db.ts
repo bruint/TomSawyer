@@ -29,6 +29,8 @@ export function openDatabase(
     CREATE TABLE IF NOT EXISTS push_deliveries (dedupe_key TEXT PRIMARY KEY, delivered_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS photos (id TEXT PRIMARY KEY, family_id TEXT NOT NULL REFERENCES families(id), image BLOB NOT NULL, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS coach_turns (id TEXT NOT NULL, child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, question TEXT NOT NULL, answer TEXT NOT NULL, context_at TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(id, child_id, user_id));
+    CREATE INDEX IF NOT EXISTS coach_conversations ON coach_turns(child_id, user_id, created_at);
     INSERT OR IGNORE INTO migrations(version) VALUES (1);
   `);
   return db;

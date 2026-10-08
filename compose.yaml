@@ -11,6 +11,9 @@ services:
       SETUP_TOKEN: ${SETUP_TOKEN:?Set a random SETUP_TOKEN in .env before starting}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
       TRUST_PROXY: ${TRUST_PROXY:-0}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - tomsawyer-data:/data
     read_only: true

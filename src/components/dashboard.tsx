@@ -1,4 +1,4 @@
-import { ArrowRight, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, MessageCircle, SlidersHorizontal } from "lucide-react";
 import { DateTime } from "luxon";
 import type {
   Activity,
@@ -14,6 +14,8 @@ import { EntryList } from "./entry-list";
 import { PageHeader } from "./page-header";
 import { PlanPreviewNotice } from "./plan-preview-notice";
 import { RunningTimers } from "./running-timers";
+import { trackerEnabled } from "../../shared/tracking";
+import { Button } from "./ui/button";
 
 export function Dashboard({
   child,
@@ -28,6 +30,7 @@ export function Dashboard({
   compare,
   setCompare,
   online,
+  onCoach,
 }: {
   child: Child;
   events: Activity[];
@@ -41,9 +44,19 @@ export function Dashboard({
   onEdit: (a: Activity) => void;
   onNavigate: (page: Page) => void;
   onTimer: (a: Activity, action: TimerAction) => void;
+  onCoach?: () => void;
 }) {
+  const visibleEvents = events.filter((entry) =>
+    trackerEnabled(child, entry.kind),
+  );
+  const sleepEnabled = trackerEnabled(child, "sleep");
+  const feedsEnabled = ["nursing", "bottle", "solids"].some((kind) =>
+    child.settings.visibleTrackers.includes(kind as ActivityKind),
+  );
   const today = DateTime.now().setZone(child.timezone).startOf("day");
-  const todays = events.filter((a) => DateTime.fromISO(a.startedAt) >= today);
+  const todays = visibleEvents.filter(
+    (a) => DateTime.fromISO(a.startedAt) >= today,
+  );
   const feeds = todays.filter((a) =>
     ["nursing", "bottle", "solids"].includes(a.kind),
   ).length;
@@ -57,14 +70,30 @@ export function Dashboard({
 
   return (
     <>
-      <PageHeader child={child} title={`${child.name}’s day`} />
+      <PageHeader
+        child={child}
+        title={`${child.name}’s day`}
+        action={
+          onCoach && (
+            <Button
+              variant="outline"
+              className="coach-trigger"
+              aria-label="Ask sleep coach"
+              onClick={onCoach}
+            >
+              <MessageCircle size={18} />
+              Ask coach
+            </Button>
+          )
+        }
+      />
       <PlanPreviewNotice
         compare={compare}
         strategy={strategy}
         online={online}
         onReturnToLive={() => setCompare(null)}
       />
-      {!sleeping && (
+      {sleepEnabled && !sleeping && (
         <section className="sleep-overview">
           <div>
             <span className="sleep-label">
@@ -99,16 +128,22 @@ export function Dashboard({
         disabled={quickBusy}
       />
       <div className="today-totals" aria-label="Today's totals">
-        <span>
-          <strong>{duration(strategy?.totalNapMinutes || 0)}</strong> naps
-        </span>
-        <span>
-          <strong>{feeds}</strong> feeds
-        </span>
-        <span>
-          <strong>{diapers}</strong> diapers
-        </span>
-        {strategy?.bedtime && (
+        {sleepEnabled && (
+          <span>
+            <strong>{duration(strategy?.totalNapMinutes || 0)}</strong> naps
+          </span>
+        )}
+        {feedsEnabled && (
+          <span>
+            <strong>{feeds}</strong> feeds
+          </span>
+        )}
+        {trackerEnabled(child, "diaper") && (
+          <span>
+            <strong>{diapers}</strong> diapers
+          </span>
+        )}
+        {sleepEnabled && strategy?.bedtime && (
           <span>
             Bed <strong>{time(strategy.bedtime, child.timezone)}</strong>
           </span>
@@ -123,7 +158,7 @@ export function Dashboard({
         </div>
         <EntryList
           child={child}
-          events={events}
+          events={visibleEvents}
           onEdit={onEdit}
           limit={10}
           groupByDay

@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Field, Select } from "./ui/field";
 import { Input } from "./ui/input";
 import { Switch } from "./ui/switch";
+import { trackerEnabled } from "../../shared/tracking";
 
 const timed = ["sleep", "nursing", "pumping", "activity", "contraction"];
 
@@ -173,11 +174,13 @@ export function LogDialog({
                   setMode("complete");
                 }}
               >
-                {activityKinds.map((k) => (
-                  <option value={k} key={k}>
-                    {kindLabels[k]}
-                  </option>
-                ))}
+                {activityKinds
+                  .filter((kind) => trackerEnabled(child, kind))
+                  .map((k) => (
+                    <option value={k} key={k}>
+                      {kindLabels[k]}
+                    </option>
+                  ))}
               </Select>
             </Field>
           )}

@@ -37,6 +37,7 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
+  margin-top: 28px;
 }
 .sidebar nav button {
   display: flex;
@@ -197,7 +198,7 @@
   background: var(--lavender);
 }
 .main-content {
-  padding: 33px 40px 20px;
+  padding: 33px 40px calc(var(--dock-height, 0px) + 24px);
   max-width: 1430px;
   margin: auto;
 }

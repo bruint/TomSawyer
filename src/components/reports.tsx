@@ -16,6 +16,7 @@ import { duration } from "../lib/format";
 import { PageHeader } from "./page-header";
 import { Button } from "./ui/button";
 import { Select } from "./ui/field";
+import { trackerEnabled } from "../../shared/tracking";
 
 export function ReportsView({
   child,
@@ -26,13 +27,20 @@ export function ReportsView({
 }) {
   const [range, setRange] = useState(7);
   const [view, setView] = useState<"summary" | "week">("summary");
+  const enabled = (kind: Activity["kind"]) => trackerEnabled(child, kind);
+  const feedsEnabled =
+    enabled("nursing") || enabled("bottle") || enabled("solids");
+  const visibleEvents = useMemo(
+    () => events.filter((entry) => trackerEnabled(child, entry.kind)),
+    [events, child.settings.visibleTrackers],
+  );
   const start = DateTime.now()
     .setZone(child.timezone)
     .startOf("day")
     .minus({ days: range - 1 });
   const data = useMemo(
-    () => buildDailyReport(events, start, range),
-    [events, range, start.toISODate()],
+    () => buildDailyReport(visibleEvents, start, range),
+    [visibleEvents, range, start.toISODate()],
   );
   const measured = data.filter((d) => d.logged.length || d.nap || d.night);
   const sleepDays = data.filter((d) => d.nap || d.night);
@@ -91,22 +99,28 @@ export function ReportsView({
         </Select>
       </div>
       <div className="report-stats">
-        <div className="card">
-          <Moon size={21} />
-          <small>Average logged sleep</small>
-          <strong>{sleepDays.length ? duration(averageSleep) : "—"}</strong>
-          <span>across {sleepDays.length} days with sleep</span>
-        </div>
-        <div className="card">
-          <Milk size={21} />
-          <small>Feeds recorded</small>
-          <strong>{sum("feeds")}</strong>
-        </div>
-        <div className="card">
-          <Droplets size={21} />
-          <small>Diaper changes</small>
-          <strong>{sum("diapers")}</strong>
-        </div>
+        {enabled("sleep") && (
+          <div className="card">
+            <Moon size={21} />
+            <small>Average logged sleep</small>
+            <strong>{sleepDays.length ? duration(averageSleep) : "—"}</strong>
+            <span>across {sleepDays.length} days with sleep</span>
+          </div>
+        )}
+        {feedsEnabled && (
+          <div className="card">
+            <Milk size={21} />
+            <small>Feeds recorded</small>
+            <strong>{sum("feeds")}</strong>
+          </div>
+        )}
+        {enabled("diaper") && (
+          <div className="card">
+            <Droplets size={21} />
+            <small>Diaper changes</small>
+            <strong>{sum("diapers")}</strong>
+          </div>
+        )}
         <div className="card">
           <List size={21} />
           <small>Days with entries</small>
@@ -116,7 +130,9 @@ export function ReportsView({
           </strong>
         </div>
       </div>
-      <SleepChart view={view} data={data} events={events} child={child} />
+      {enabled("sleep") && (
+        <SleepChart view={view} data={data} events={events} child={child} />
+      )}
       <div className="report-grid">
         <section className="card">
           <h2>Daily totals</h2>
@@ -125,9 +141,9 @@ export function ReportsView({
               <thead>
                 <tr>
                   <th>Day</th>
-                  <th>Sleep</th>
-                  <th>Feeds</th>
-                  <th>Diapers</th>
+                  {enabled("sleep") && <th>Sleep</th>}
+                  {feedsEnabled && <th>Feeds</th>}
+                  {enabled("diaper") && <th>Diapers</th>}
                 </tr>
               </thead>
               <tbody>
@@ -137,125 +153,139 @@ export function ReportsView({
                   .map((d) => (
                     <tr key={d.day.toISODate()}>
                       <td>{d.day.toFormat("ccc, d LLL")}</td>
-                      <td>
-                        {d.nap + d.night ? duration(d.nap + d.night) : "—"}
-                      </td>
-                      <td>{d.logged.length ? d.feeds : "—"}</td>
-                      <td>{d.logged.length ? d.diapers : "—"}</td>
+                      {enabled("sleep") && (
+                        <td>
+                          {d.nap + d.night ? duration(d.nap + d.night) : "—"}
+                        </td>
+                      )}
+                      {feedsEnabled && (
+                        <td>{d.logged.length ? d.feeds : "—"}</td>
+                      )}
+                      {enabled("diaper") && (
+                        <td>{d.logged.length ? d.diapers : "—"}</td>
+                      )}
                     </tr>
                   ))}
               </tbody>
             </table>
           </div>
         </section>
-        <section className="card">
-          <h2>Foods & reactions</h2>
-          {solids.length ? (
-            <div className="food-list">
-              {solids.slice(0, 8).map((a) => (
-                <div key={a.id}>
-                  <span>
-                    <strong>{String(a.details.food || "Meal")}</strong>
-                    <small>
-                      {a.details.allergens
-                        ? `Allergens noted: ${a.details.allergens}`
-                        : "No allergens noted"}
-                    </small>
-                  </span>
-                  <span
-                    className={`badge ${a.details.reaction === "Possible reaction" ? "peach" : "sage"}`}
-                  >
-                    {String(a.details.reaction || "Tried")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state compact">
-              <p>No solids logged.</p>
-            </div>
-          )}
-          <p className="form-hint">
-            Food reactions are caregiver observations. This report does not
-            diagnose allergies.
-          </p>
-        </section>
+        {enabled("solids") && (
+          <section className="card">
+            <h2>Foods & reactions</h2>
+            {solids.length ? (
+              <div className="food-list">
+                {solids.slice(0, 8).map((a) => (
+                  <div key={a.id}>
+                    <span>
+                      <strong>{String(a.details.food || "Meal")}</strong>
+                      <small>
+                        {a.details.allergens
+                          ? `Allergens noted: ${a.details.allergens}`
+                          : "No allergens noted"}
+                      </small>
+                    </span>
+                    <span
+                      className={`badge ${a.details.reaction === "Possible reaction" ? "peach" : "sage"}`}
+                    >
+                      {String(a.details.reaction || "Tried")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state compact">
+                <p>No solids logged.</p>
+              </div>
+            )}
+            <p className="form-hint">
+              Food reactions are caregiver observations. This report does not
+              diagnose allergies.
+            </p>
+          </section>
+        )}
       </div>
       <div className="report-grid">
-        <section className="card">
-          <h2>Growth</h2>
-          {growth.length ? (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Weight</th>
-                  <th>Length</th>
-                  <th>Head</th>
-                </tr>
-              </thead>
-              <tbody>
-                {growth.map((a) => (
-                  <tr key={a.id}>
-                    <td>
-                      {DateTime.fromISO(a.startedAt)
-                        .setZone(child.timezone)
-                        .toFormat("d LLL")}
-                    </td>
-                    <td>
-                      {String(a.details.weight)}{" "}
-                      {String(a.details.weightUnit || "kg")}
-                    </td>
-                    <td>
-                      {a.details.height
-                        ? `${a.details.height} ${a.details.lengthUnit || "cm"}`
-                        : "—"}
-                    </td>
-                    <td>
-                      {a.details.head
-                        ? `${a.details.head} ${a.details.lengthUnit || "cm"}`
-                        : "—"}
-                    </td>
+        {enabled("growth") && (
+          <section className="card">
+            <h2>Growth</h2>
+            {growth.length ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Weight</th>
+                    <th>Length</th>
+                    <th>Head</th>
                   </tr>
+                </thead>
+                <tbody>
+                  {growth.map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        {DateTime.fromISO(a.startedAt)
+                          .setZone(child.timezone)
+                          .toFormat("d LLL")}
+                      </td>
+                      <td>
+                        {String(a.details.weight)}{" "}
+                        {String(a.details.weightUnit || "kg")}
+                      </td>
+                      <td>
+                        {a.details.height
+                          ? `${a.details.height} ${a.details.lengthUnit || "cm"}`
+                          : "—"}
+                      </td>
+                      <td>
+                        {a.details.head
+                          ? `${a.details.head} ${a.details.lengthUnit || "cm"}`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty-state compact">
+                <p>No growth measurements logged.</p>
+              </div>
+            )}
+          </section>
+        )}
+        {enabled("milestone") && (
+          <section className="card">
+            <h2>Milestones</h2>
+            {milestones.length ? (
+              <div className="milestone-list">
+                {milestones.slice(0, 6).map((a) => (
+                  <div key={a.id}>
+                    {a.details.photoId && (
+                      <img
+                        src={`/api/photos/${a.details.photoId}`}
+                        alt={String(a.details.title || "Milestone")}
+                      />
+                    )}
+                    <span>
+                      <strong>
+                        {String(a.details.title || "A milestone")}
+                      </strong>
+                      <small>
+                        {DateTime.fromISO(a.startedAt)
+                          .setZone(child.timezone)
+                          .toFormat("d LLL yyyy")}
+                      </small>
+                      <p>{a.notes}</p>
+                    </span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="empty-state compact">
-              <p>No growth measurements logged.</p>
-            </div>
-          )}
-        </section>
-        <section className="card">
-          <h2>Milestones</h2>
-          {milestones.length ? (
-            <div className="milestone-list">
-              {milestones.slice(0, 6).map((a) => (
-                <div key={a.id}>
-                  {a.details.photoId && (
-                    <img
-                      src={`/api/photos/${a.details.photoId}`}
-                      alt={String(a.details.title || "Milestone")}
-                    />
-                  )}
-                  <span>
-                    <strong>{String(a.details.title || "A milestone")}</strong>
-                    <small>
-                      {DateTime.fromISO(a.startedAt)
-                        .setZone(child.timezone)
-                        .toFormat("d LLL yyyy")}
-                    </small>
-                    <p>{a.notes}</p>
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state compact">
-              <p>No milestones logged.</p>
-            </div>
-          )}
-        </section>
+              </div>
+            ) : (
+              <div className="empty-state compact">
+                <p>No milestones logged.</p>
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </>
   );

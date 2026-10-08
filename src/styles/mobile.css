@@ -19,7 +19,7 @@
   .workspace {
     width: 100%;
     margin-left: 0;
-    padding-bottom: 74px;
+    padding-bottom: 0;
   }
   .topbar {
     height: 73px;
@@ -36,7 +36,9 @@
     border: 0;
     background: none;
     color: var(--primary);
-    margin-right: 5px;
+    min-width: 44px;
+    min-height: 44px;
+    margin-left: -8px;
   }
   .mobile-menu-toggle svg {
     width: 21px;
@@ -67,7 +69,7 @@
     display: none;
   }
   .main-content {
-    padding: 25px 19px 10px;
+    padding: 25px 19px calc(var(--dock-height, 74px) + 24px);
   }
   .page-heading {
     gap: 12px;
