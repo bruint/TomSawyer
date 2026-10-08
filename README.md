@@ -1,5 +1,9 @@
 # TomSawyer
 
+Huckleberry costs a lot, this is a version for the nerds out there who want to annoy their SO by self-hosting an alternative. 
+
+The reason I didn't like Huckleberry is basically because it doesn't really give you a plan for the day, it just gives you vibes based on what might come next. This gives you a strategy for the day.
+
 **A little more rest. A plan for the rest.**
 
 A self-hosted, mobile-first baby tracker with a practical sleep strategy for the rest of the day. Built with React, shadcn/ui, TypeScript, Node.js and SQLite. Runs in one Docker or Podman container. No subscriptions, analytics, advertising, or external AI account.
