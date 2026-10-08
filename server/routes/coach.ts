@@ -7,7 +7,7 @@ import { getChild } from "../access.js";
 import { coachMessages, type CoachClient } from "../coach/client.js";
 import { buildCoachContext } from "../coach/context.js";
 import { activitiesFor, type DB, type Row } from "../db.js";
-import { fail } from "../http.js";
+import { fail, HttpError } from "../http.js";
 import { STRATEGY_HISTORY_DAYS } from "../strategy.js";
 
 const questionSchema = z.object({
@@ -62,6 +62,26 @@ export function createCoachRouter(
     const child = getChild(db, req, res);
     const userId = res.locals.user.id as string;
     const { id, question } = questionSchema.parse(req.body);
+    const streaming = req.get("Accept")?.includes("text/event-stream") ?? false;
+    const beginStream = () => {
+      if (res.headersSent) return;
+      res.set({
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-store, no-transform",
+        "X-Accel-Buffering": "no",
+      });
+      res.flushHeaders();
+    };
+    const sendEvent = (event: string, data: unknown) => {
+      beginStream();
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+    const respond = (turn: CoachTurn) => {
+      if (streaming) {
+        sendEvent("complete", turn);
+        res.end();
+      } else res.json(turn);
+    };
     const saved = db
       .prepare(
         "SELECT * FROM coach_turns WHERE id=? AND child_id=? AND user_id=?",
@@ -70,7 +90,7 @@ export function createCoachRouter(
     if (saved) {
       if (saved.question !== question)
         return fail(409, "This question was already sent. Start a new one.");
-      res.json(fromRow(saved));
+      respond(fromRow(saved));
       return;
     }
     if (!client.enabled) return fail(503, "Sleep coach is not connected.");
@@ -80,10 +100,18 @@ export function createCoachRouter(
     pending.add(scope);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
     const disconnected = () => {
       if (!res.writableEnded) controller.abort();
     };
     res.on("close", disconnected);
+    const access = db.prepare(
+      "SELECT c.id FROM children c JOIN users u ON u.family_id=c.family_id WHERE c.id=? AND u.id=? AND u.disabled=0",
+    );
+    const checkAccess = () => {
+      if (!access.get(child.id, userId))
+        fail(404, "Conversation is no longer available.");
+    };
     try {
       const now = new Date();
       const context = buildCoachContext(
@@ -97,20 +125,28 @@ export function createCoachRouter(
         ),
         now,
       );
+      if (streaming) {
+        beginStream();
+        heartbeat = setInterval(() => {
+          if (!res.destroyed) res.write(": keep-alive\n\n");
+        }, 15000);
+      }
       const answer = await client.reply(
         coachMessages(context, history(child.id, userId), question),
         controller.signal,
+        streaming
+          ? (text) => {
+              if (controller.signal.aborted)
+                fail(503, "Sleep coach reply was interrupted. Try again.");
+              checkAccess();
+              sendEvent("delta", { text });
+            }
+          : undefined,
       );
       if (controller.signal.aborted)
         return fail(503, "Sleep coach took too long. Try again.");
-      // Recheck access after a potentially long request; a child or caregiver
-      // can be removed while the answer is being generated.
-      const permitted = db
-        .prepare(
-          "SELECT c.id FROM children c JOIN users u ON u.family_id=c.family_id WHERE c.id=? AND u.id=? AND u.disabled=0",
-        )
-        .get(child.id, userId);
-      if (!permitted) return fail(404, "Conversation is no longer available.");
+      // Access can change while the reply is being generated.
+      checkAccess();
       const turn: CoachTurn = {
         id,
         question,
@@ -129,9 +165,22 @@ export function createCoachRouter(
         turn.contextAt,
         turn.createdAt,
       );
-      res.json(turn);
+      respond(turn);
+    } catch (error) {
+      if (!streaming || !res.headersSent) throw error;
+      if (!res.destroyed) {
+        sendEvent("error", {
+          error: controller.signal.aborted
+            ? "Sleep coach took too long. Try again."
+            : error instanceof HttpError
+              ? error.message
+              : "Sleep coach reply was interrupted. Try again.",
+        });
+        res.end();
+      }
     } finally {
       clearTimeout(timeout);
+      clearInterval(heartbeat);
       res.off("close", disconnected);
       pending.delete(scope);
     }

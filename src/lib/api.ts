@@ -6,11 +6,11 @@ export class ApiError extends Error {
     super(message);
   }
 }
-export async function api<T = unknown>(
+export function apiRequest(
   path: string,
   options: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(`/api${path}`, {
+): Promise<Response> {
+  return fetch(`/api${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -18,6 +18,12 @@ export async function api<T = unknown>(
       ...options.headers,
     },
   });
+}
+export async function api<T = unknown>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await apiRequest(path, options);
   const data = await response
     .json()
     .catch(() => ({ error: "The server did not respond as expected." }));

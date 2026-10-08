@@ -135,10 +135,18 @@ export function SleepCoach({
           {coach.pending && (
             <div className="coach-turn">
               <div className="coach-question">{coach.pending.question}</div>
-              <div className="coach-status">
-                <Loader2 size={18} className="spin" />
-                Thinking…
-              </div>
+              {coach.pending.answer ? (
+                <div
+                  className={`coach-answer${coach.asking ? " is-streaming" : ""}`}
+                >
+                  {coach.pending.answer}
+                </div>
+              ) : (
+                <div className="coach-status">
+                  <Loader2 size={18} className="spin" />
+                  Thinking…
+                </div>
+              )}
             </div>
           )}
         </div>

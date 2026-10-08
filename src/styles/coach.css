@@ -83,6 +83,16 @@
   font-size: 15px;
   line-height: 1.7;
 }
+.coach-answer.is-streaming::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 1em;
+  margin-left: 4px;
+  vertical-align: -0.1em;
+  border-radius: 2px;
+  background: var(--primary);
+}
 .coach-time {
   display: block;
   margin-top: 12px;

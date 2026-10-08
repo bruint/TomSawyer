@@ -2,6 +2,7 @@ import type { CoachTurn } from "../../shared/coach.js";
 import { z } from "zod";
 import { HttpError } from "../http.js";
 import type { CoachContext } from "./context.js";
+import { readCoachAnswer } from "./stream.js";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -10,7 +11,11 @@ export interface ChatMessage {
 
 export interface CoachClient {
   enabled: boolean;
-  reply(messages: ChatMessage[], signal: AbortSignal): Promise<string>;
+  reply(
+    messages: ChatMessage[],
+    signal: AbortSignal,
+    onDelta?: (text: string) => void,
+  ): Promise<string>;
 }
 
 const instructions = `You are TomSawyer's sleep coach, speaking to a tired parent.
@@ -59,7 +64,7 @@ export function createCoachClient(
 
   return {
     enabled,
-    async reply(messages, signal) {
+    async reply(messages, signal, onDelta) {
       if (!enabled) throw new HttpError(503, "Sleep coach is not connected.");
       let response: Response;
       try {
@@ -67,12 +72,13 @@ export function createCoachClient(
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...(onDelta ? { Accept: "text/event-stream" } : {}),
             ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
           },
           body: JSON.stringify({
             model,
             messages,
-            stream: false,
+            stream: !!onDelta,
             max_completion_tokens: 1400,
           }),
           signal,
@@ -83,6 +89,14 @@ export function createCoachClient(
       }
       if (!response.ok)
         throw new HttpError(503, "Sleep coach is unavailable. Try again.");
+      if (response.headers.get("Content-Type")?.includes("text/event-stream")) {
+        if (!response.body)
+          throw new HttpError(
+            502,
+            "Sleep coach did not return an answer. Try again.",
+          );
+        return readCoachAnswer(response.body, onDelta);
+      }
       let result: unknown;
       try {
         result = await response.json();
@@ -108,8 +122,11 @@ export function createCoachClient(
           502,
           "Sleep coach did not return an answer. Try again.",
         );
-      const answer = parsed.data.choices[0].message.content;
-      return answer.trim().slice(0, 12000);
+      const answer = parsed.data.choices[0].message.content
+        .trim()
+        .slice(0, 12000);
+      onDelta?.(answer); // Compatible gateways may return JSON even when asked to stream.
+      return answer;
     },
   };
 }

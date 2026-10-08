@@ -1,6 +1,6 @@
 # TomSawyer
 
-Huckleberry costs a lot, this is a version for the nerds out there who want to annoy their SO by self-hosting an alternative. 
+Huckleberry costs a lot, this is a version for the nerds out there who want to annoy their SO by self-hosting an alternative.
 
 The reason I didn't like Huckleberry is basically because it doesn't really give you a plan for the day, it just gives you vibes based on what might come next. This gives you a strategy for the day.
 
@@ -120,7 +120,7 @@ The planner does **not** implement a clinically validated prediction model. Unde
 
 ## Sleep coach
 
-Tap **Ask coach** on Today or Strategy. You can ask a question or use What now?, Short nap, and Late wake. Each question sends a fresh snapshot of the selected child's age, corrected age when applicable, local time, current sleep or overnight wake, enabled tracker entries, recent naps, routine, and live plan. The coach always uses the live recommendation, including while you preview another nap count. Replies are advice; they do not change logs, settings, or reminders.
+Tap **Ask coach** on Today or Strategy. You can ask a question or use What now?, Short nap, and Late wake. Replies stream into the conversation as they are generated. Each question sends a fresh snapshot of the selected child's age, corrected age when applicable, local time, current sleep or overnight wake, enabled tracker entries, recent naps, routine, and live plan. The coach always uses the live recommendation, including while you preview another nap count. Replies are advice; they do not change logs, settings, or reminders. Only completed replies are saved; closing the chat cancels an answer that is still running.
 
 Configure these variables on the server, in Compose's `.env` or the Quadlet environment file:
 

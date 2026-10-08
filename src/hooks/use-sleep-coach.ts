@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { CoachConversation, CoachTurn } from "../../shared/coach";
+import type { CoachConversation } from "../../shared/coach";
 import { api } from "../lib/api";
+import { streamCoachReply } from "../lib/coach-api";
 
 export function useSleepCoach(childId: string) {
   const [conversation, setConversation] = useState<CoachConversation>({
@@ -13,6 +14,7 @@ export function useSleepCoach(childId: string) {
   const [pending, setPending] = useState<{
     id: string;
     question: string;
+    answer: string;
   } | null>(null);
   const failed = useRef<{ id: string; question: string } | null>(null);
   const mounted = useRef(false);
@@ -58,15 +60,23 @@ export function useSleepCoach(childId: string) {
         : { id: crypto.randomUUID(), question };
     const controller = new AbortController();
     request.current = controller;
-    setPending(next);
+    setPending({ ...next, answer: "" });
     setAsking(true);
     setError("");
     try {
-      const turn = await api<CoachTurn>(path, {
-        method: "POST",
-        body: JSON.stringify(next),
-        signal: controller.signal,
-      });
+      const turn = await streamCoachReply(
+        childId,
+        next,
+        controller.signal,
+        (text) => {
+          if (!mounted.current || controller.signal.aborted) return;
+          setPending((current) =>
+            current?.id === next.id
+              ? { ...current, answer: current.answer + text }
+              : current,
+          );
+        },
+      );
       if (!mounted.current || controller.signal.aborted) return false;
       setConversation((saved) => ({
         ...saved,
@@ -81,7 +91,7 @@ export function useSleepCoach(childId: string) {
     } catch (error) {
       if (mounted.current && !controller.signal.aborted) {
         failed.current = next;
-        setPending(null);
+        setPending((current) => (current?.answer ? current : null));
         setError((error as Error).message);
       }
       return false;
