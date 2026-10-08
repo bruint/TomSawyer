@@ -8,6 +8,12 @@ The reason I didn't like Huckleberry is basically because it doesn't really give
 
 A self-hosted, mobile-first baby tracker with a practical sleep strategy for the rest of the day. Built with React, shadcn/ui, TypeScript, Node.js and SQLite. Runs in one Docker or Podman container. The planner works without an AI account; an optional sleep coach uses your existing OpenAI-compatible connection. No analytics or advertising.
 
+## Demo
+
+https://github.com/user-attachments/assets/f5bed3fa-4b34-4b86-9484-ee4e82bc5da2
+
+[Launch interactive demo →](https://app.howdygo.com/share/7b354590-7417-48e7-804e-52c52a50acde)
+
 ## What you can do
 
 - Track sleep, nursing, bottles and tube feeds, solids, diapers, potty, pumping, medicine, growth, temperature, activities, milestones with photos, contractions, and notes.
